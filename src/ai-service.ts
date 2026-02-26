@@ -7,7 +7,7 @@ let genAI: GoogleGenerativeAI | null = null;
 export const initializeAI = (apiKey: string) => {
     genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.1-pro",
         systemInstruction: SYSTEM_PROMPT
     });
 
