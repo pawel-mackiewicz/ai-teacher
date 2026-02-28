@@ -53,17 +53,20 @@ export function ChatPanel({
           </div>
         </div>
 
-        {messages.map((message) => {
+        {messages.map((message, index) => {
           const isAiError =
             message.role === 'ai' &&
             message.content.includes('Use **Retry from here** on your message to try again.');
+          const isGenerating = isLoading && message.role === 'ai' && index === messages.length - 1;
 
           return (
             <div
               key={message.id}
               className={`message ${message.role === 'user' ? 'user-message' : 'ai-message'} ${isAiError ? 'ai-message-error' : ''}`}
             >
-              <div className="message-avatar">{message.role === 'user' ? 'U' : '🧠'}</div>
+              <div className={`message-avatar ${isGenerating ? 'animate-pulse' : ''}`}>
+                {message.role === 'user' ? 'U' : '🧠'}
+              </div>
               <div className="message-content prose">
                 {message.role === 'ai' ? (
                   <ReactMarkdown>{message.content}</ReactMarkdown>
