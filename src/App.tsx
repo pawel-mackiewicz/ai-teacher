@@ -162,7 +162,7 @@ function App() {
     () => activeConversation?.messages || EMPTY_MESSAGES,
     [activeConversation],
   );
-  const topic = activeConversation?.topic || null;
+
   const sortedConversations = useMemo(
     () => [...conversations].sort((left, right) => right.updatedAt - left.updatedAt),
     [conversations],
@@ -197,7 +197,7 @@ function App() {
       const storedActiveConversationId = localStorage.getItem(ACTIVE_CONVERSATION_STORAGE_KEY);
       const selectedConversationId =
         storedActiveConversationId &&
-        storedConversations.some((conversation) => conversation.id === storedActiveConversationId)
+          storedConversations.some((conversation) => conversation.id === storedActiveConversationId)
           ? storedActiveConversationId
           : storedConversations[0].id;
 
@@ -431,45 +431,6 @@ function App() {
               <span className="conversation-meta">{formatConversationTimestamp(conversation.updatedAt)}</span>
             </button>
           ))}
-        </div>
-        <div className="sidebar-separator" />
-
-        <div className="sidebar-header">
-          <h2>Learning Blueprint</h2>
-        </div>
-        <div className="sidebar-content">
-          {!topic ? (
-            <div className="blueprint-placeholder">
-              <p>The Blueprint will begin assembling once you provide a topic to the Master Craftsman.</p>
-            </div>
-          ) : (
-            <div className="blueprint-active">
-              <h3 style={{ color: 'var(--accent-primary)', marginBottom: '1rem', fontSize: '1.2rem', fontFamily: 'var(--font-display)' }}>
-                Topic: {topic}
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                Follow the Master Craftsman&apos;s instructions. The blueprint will naturally evolve in the chat as you climb the Ladder of Mastery.
-              </p>
-              <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ padding: '1rem', backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', borderLeft: '3px solid var(--accent-success)' }}>
-                  <strong style={{ display: 'block', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Level 2: Understand</strong>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>Rephrase & Analogy</span>
-                </div>
-                <div style={{ padding: '1rem', backgroundColor: 'var(--bg-surface)', opacity: 0.6, borderRadius: 'var(--radius-md)', borderLeft: '3px solid var(--text-tertiary)' }}>
-                  <strong style={{ display: 'block', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Level 3: Apply</strong>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>Practical Problem</span>
-                </div>
-                <div style={{ padding: '1rem', backgroundColor: 'var(--bg-surface)', opacity: 0.6, borderRadius: 'var(--radius-md)', borderLeft: '3px solid var(--text-tertiary)' }}>
-                  <strong style={{ display: 'block', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Level 4: Analyze</strong>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>Dissect Complex Scenarios</span>
-                </div>
-                <div style={{ padding: '1rem', backgroundColor: 'var(--bg-surface)', opacity: 0.6, borderRadius: 'var(--radius-md)', borderLeft: '3px solid var(--text-tertiary)' }}>
-                  <strong style={{ display: 'block', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Level 5: Evaluate</strong>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>Critique Proposals</span>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </aside>
 
