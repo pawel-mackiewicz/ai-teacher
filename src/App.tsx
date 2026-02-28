@@ -67,6 +67,10 @@ function App() {
     void chat.retryMessage(messageId);
   };
 
+  const handleEditMessage = (messageId: string, newContent: string) => {
+    chat.editMessage(messageId, newContent);
+  };
+
   if (aiSetup.isBootstrapping) {
     return (
       <div className="app-container setup-container">
@@ -144,6 +148,7 @@ function App() {
             onInputKeyDown={chat.handleInputEnter}
             onSubmit={handleChatSubmit}
             onRetryMessage={handleRetryMessage}
+            onEditMessage={handleEditMessage}
           />
         )}
       </main>

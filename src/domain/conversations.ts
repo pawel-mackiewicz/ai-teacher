@@ -61,6 +61,25 @@ export interface RetryConversationResult {
   historyBeforeRetry: Message[];
 }
 
+export const editMessageContent = (
+  conversation: Conversation,
+  messageId: string,
+  newContent: string,
+  timestamp = Date.now(),
+): Conversation | null => {
+  const index = conversation.messages.findIndex((message) => message.id === messageId);
+  if (index < 0) return null;
+
+  const newMessages = [...conversation.messages];
+  newMessages[index] = { ...newMessages[index], content: newContent };
+
+  return {
+    ...conversation,
+    messages: newMessages,
+    updatedAt: timestamp,
+  };
+};
+
 export const resetConversationForRetry = (
   conversation: Conversation,
   messageId: string,
@@ -147,7 +166,7 @@ export const getInitialConversationState = (): {
   const storedActiveConversationId = localStorage.getItem(ACTIVE_CONVERSATION_STORAGE_KEY);
   const activeConversationId =
     storedActiveConversationId &&
-    conversations.some((conversation) => conversation.id === storedActiveConversationId)
+      conversations.some((conversation) => conversation.id === storedActiveConversationId)
       ? storedActiveConversationId
       : conversations[0].id;
 

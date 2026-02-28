@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, type FormEvent, type KeyboardEvent } from 'react';
-import ReactMarkdown from 'react-markdown';
 import type { Message } from '../types/app';
+import { ChatMessageItem } from './ChatMessageItem';
 
 interface ChatPanelProps {
   messages: Message[];
@@ -10,6 +10,7 @@ interface ChatPanelProps {
   onInputKeyDown: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
   onSubmit: (e: FormEvent) => void;
   onRetryMessage: (messageId: string) => void;
+  onEditMessage: (messageId: string, newContent: string) => void;
 }
 
 export function ChatPanel({
@@ -20,6 +21,7 @@ export function ChatPanel({
   onInputKeyDown,
   onSubmit,
   onRetryMessage,
+  onEditMessage,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -54,39 +56,17 @@ export function ChatPanel({
         </div>
 
         {messages.map((message, index) => {
-          const isAiError =
-            message.role === 'ai' &&
-            message.content.includes('Use **Retry from here** on your message to try again.');
           const isGenerating = isLoading && message.role === 'ai' && index === messages.length - 1;
 
           return (
-            <div
+            <ChatMessageItem
               key={message.id}
-              className={`message ${message.role === 'user' ? 'user-message' : 'ai-message'} ${isAiError ? 'ai-message-error' : ''}`}
-            >
-              <div className={`message-avatar ${isGenerating ? 'animate-pulse' : ''}`}>
-                {message.role === 'user' ? 'U' : '🧠'}
-              </div>
-              <div className="message-content prose">
-                {message.role === 'ai' ? (
-                  <ReactMarkdown>{message.content}</ReactMarkdown>
-                ) : (
-                  <>
-                    <p>{message.content}</p>
-                    <button
-                      type="button"
-                      className="message-retry-btn"
-                      onClick={() => onRetryMessage(message.id)}
-                      disabled={isLoading}
-                      aria-label="Retry from this message"
-                      title="Retry from this message"
-                    >
-                      Retry from here
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
+              message={message}
+              isGenerating={isGenerating}
+              isLoading={isLoading}
+              onRetryMessage={onRetryMessage}
+              onEditMessage={onEditMessage}
+            />
           );
         })}
         <div ref={messagesEndRef} />

@@ -13,7 +13,7 @@ import {
   sendMessageToAI,
   type ChatMessage,
 } from '../ai-service';
-import { resetConversationForRetry, toConversationTitle } from '../domain/conversations';
+import { editMessageContent, resetConversationForRetry, toConversationTitle } from '../domain/conversations';
 import { addLog } from '../logger';
 import type { Conversation, Message } from '../types/app';
 import { getErrorMessage } from '../utils/error';
@@ -31,6 +31,7 @@ export interface UseChatResult {
   timeoutRemainingMs: number | null;
   sendMessage: (e?: FormEvent) => Promise<void>;
   retryMessage: (messageId: string) => Promise<void>;
+  editMessage: (messageId: string, newContent: string) => void;
   handleInputEnter: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
 }
 
@@ -219,6 +220,25 @@ export const useChat = ({
     [activeConversation, isLoading, setConversations, streamReply],
   );
 
+  const editMessage = useCallback(
+    (messageId: string, newContent: string) => {
+      if (isLoading || !activeConversation) return;
+
+      const conversationId = activeConversation.id;
+
+      addLog('action', `Edited message ${messageId} in conversation`);
+
+      setConversations((prev) =>
+        prev.map((conversation) => {
+          if (conversation.id !== conversationId) return conversation;
+          const nextConversation = editMessageContent(conversation, messageId, newContent);
+          return nextConversation || conversation;
+        }),
+      );
+    },
+    [activeConversation, isLoading, setConversations],
+  );
+
   const handleInputEnter = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -236,6 +256,7 @@ export const useChat = ({
     timeoutRemainingMs,
     sendMessage,
     retryMessage,
+    editMessage,
     handleInputEnter,
   };
 };
