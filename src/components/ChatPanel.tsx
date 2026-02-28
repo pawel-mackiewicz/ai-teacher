@@ -53,33 +53,39 @@ export function ChatPanel({
           </div>
         </div>
 
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`message ${message.role === 'user' ? 'user-message' : 'ai-message'}`}
-          >
-            <div className="message-avatar">{message.role === 'user' ? 'U' : '🧠'}</div>
-            <div className="message-content prose">
-              {message.role === 'ai' ? (
-                <ReactMarkdown>{message.content}</ReactMarkdown>
-              ) : (
-                <>
-                  <p>{message.content}</p>
-                  <button
-                    type="button"
-                    className="message-retry-btn"
-                    onClick={() => onRetryMessage(message.id)}
-                    disabled={isLoading}
-                    aria-label="Retry from this message"
-                    title="Retry from this message"
-                  >
-                    Retry from here
-                  </button>
-                </>
-              )}
+        {messages.map((message) => {
+          const isAiError =
+            message.role === 'ai' &&
+            message.content.includes('Use **Retry from here** on your message to try again.');
+
+          return (
+            <div
+              key={message.id}
+              className={`message ${message.role === 'user' ? 'user-message' : 'ai-message'} ${isAiError ? 'ai-message-error' : ''}`}
+            >
+              <div className="message-avatar">{message.role === 'user' ? 'U' : '🧠'}</div>
+              <div className="message-content prose">
+                {message.role === 'ai' ? (
+                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                ) : (
+                  <>
+                    <p>{message.content}</p>
+                    <button
+                      type="button"
+                      className="message-retry-btn"
+                      onClick={() => onRetryMessage(message.id)}
+                      disabled={isLoading}
+                      aria-label="Retry from this message"
+                      title="Retry from this message"
+                    >
+                      Retry from here
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 

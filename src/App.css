@@ -442,6 +442,18 @@
   color: var(--text-secondary);
 }
 
+.ai-message-error .message-content {
+  background-color: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: var(--radius-md);
+  color: #fecaca;
+  padding: 0.85rem 1rem;
+}
+
+.ai-message-error .message-content p {
+  color: #fecaca;
+}
+
 .user-message .message-content {
   background-color: var(--bg-surface);
   padding: 1rem 1.25rem;

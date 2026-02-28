@@ -6,9 +6,19 @@ interface MainHeaderProps {
   modelOptions: string[];
   selectedModel: string;
   isLoading: boolean;
+  timeoutRemainingMs: number | null;
   isModelLoading: boolean;
   onModelChange: (modelId: string) => void;
 }
+
+const formatTimeoutRemaining = (timeoutRemainingMs: number | null): string => {
+  if (timeoutRemainingMs === null) return '--:--';
+
+  const totalSeconds = Math.max(0, Math.ceil(timeoutRemainingMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+};
 
 export function MainHeader({
   isFlashcardsView,
@@ -18,9 +28,14 @@ export function MainHeader({
   modelOptions,
   selectedModel,
   isLoading,
+  timeoutRemainingMs,
   isModelLoading,
   onModelChange,
 }: MainHeaderProps) {
+  const statusText = isLoading
+    ? `Typing... (${formatTimeoutRemaining(timeoutRemainingMs)} to timeout)`
+    : 'Ready';
+
   return (
     <header className="main-header">
       <h2>{isFlashcardsView ? 'Flashcards Dashboard' : 'Master Craftsman'}</h2>
@@ -51,7 +66,7 @@ export function MainHeader({
             </option>
           ))}
         </select>
-        <span className="status-indicator">{isLoading ? 'Typing...' : 'Ready'}</span>
+        <span className="status-indicator">{statusText}</span>
       </div>
     </header>
   );

@@ -1,15 +1,22 @@
 import {
   useCallback,
+  useEffect,
   useState,
   type Dispatch,
   type FormEvent,
   type KeyboardEvent,
   type SetStateAction,
 } from 'react';
-import { sendMessageToAI, type ChatMessage } from '../ai-service';
+import {
+  CHAT_STREAM_BETWEEN_TOKENS_TIMEOUT_MS,
+  CHAT_STREAM_FIRST_TOKEN_TIMEOUT_MS,
+  sendMessageToAI,
+  type ChatMessage,
+} from '../ai-service';
 import { resetConversationForRetry, toConversationTitle } from '../domain/conversations';
 import { addLog } from '../logger';
 import type { Conversation, Message } from '../types/app';
+import { getErrorMessage } from '../utils/error';
 import { createId } from '../utils/id';
 
 interface UseChatParams {
@@ -21,6 +28,7 @@ export interface UseChatResult {
   inputValue: string;
   setInputValue: Dispatch<SetStateAction<string>>;
   isLoading: boolean;
+  timeoutRemainingMs: number | null;
   sendMessage: (e?: FormEvent) => Promise<void>;
   retryMessage: (messageId: string) => Promise<void>;
   handleInputEnter: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
@@ -31,6 +39,7 @@ interface StreamReplyParams {
   aiMessageId: string;
   userText: string;
   historyBeforeSend: ChatMessage[];
+  trigger: 'send' | 'retry';
 }
 
 const toChatHistory = (messages: Message[]): ChatMessage[] =>
@@ -45,45 +54,90 @@ export const useChat = ({
 }: UseChatParams): UseChatResult => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [timeoutDeadline, setTimeoutDeadline] = useState<number | null>(null);
+  const [timeoutRemainingMs, setTimeoutRemainingMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (timeoutDeadline === null) {
+      setTimeoutRemainingMs(null);
+      return;
+    }
+
+    const updateRemaining = () => {
+      setTimeoutRemainingMs(Math.max(0, timeoutDeadline - Date.now()));
+    };
+
+    updateRemaining();
+    const timerId = window.setInterval(updateRemaining, 1000);
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, [timeoutDeadline]);
 
   const streamReply = useCallback(
-    async ({ conversationId, aiMessageId, userText, historyBeforeSend }: StreamReplyParams) => {
+    async ({ conversationId, aiMessageId, userText, historyBeforeSend, trigger }: StreamReplyParams) => {
       setIsLoading(true);
+      setTimeoutDeadline(Date.now() + CHAT_STREAM_FIRST_TOKEN_TIMEOUT_MS);
+      setTimeoutRemainingMs(CHAT_STREAM_FIRST_TOKEN_TIMEOUT_MS);
 
       try {
-        await sendMessageToAI(userText, historyBeforeSend, (chunk) => {
-          setConversations((prev) =>
-            prev.map((conversation) => {
-              if (conversation.id !== conversationId) return conversation;
+        await sendMessageToAI(
+          userText,
+          historyBeforeSend,
+          (chunk) => {
+            setTimeoutDeadline(Date.now() + CHAT_STREAM_BETWEEN_TOKENS_TIMEOUT_MS);
+            setTimeoutRemainingMs(CHAT_STREAM_BETWEEN_TOKENS_TIMEOUT_MS);
 
-              return {
-                ...conversation,
-                messages: conversation.messages.map((message) =>
-                  message.id === aiMessageId ? { ...message, content: chunk } : message,
-                ),
-                updatedAt: Date.now(),
-              };
-            }),
-          );
-        });
-      } catch {
+            setConversations((prev) =>
+              prev.map((conversation) => {
+                if (conversation.id !== conversationId) return conversation;
+
+                return {
+                  ...conversation,
+                  messages: conversation.messages.map((message) =>
+                    message.id === aiMessageId ? { ...message, content: chunk } : message,
+                  ),
+                  updatedAt: Date.now(),
+                };
+              }),
+            );
+          },
+          {
+            requestContext: {
+              conversationId,
+              aiMessageId,
+              trigger,
+            },
+          },
+        );
+      } catch (error) {
+        const errorMessage = getErrorMessage(error);
+
         setConversations((prev) =>
           prev.map((conversation) => {
             if (conversation.id !== conversationId) return conversation;
 
             return {
               ...conversation,
-              messages: conversation.messages.map((message) =>
-                message.id === aiMessageId
-                  ? { ...message, content: '⚠️ *Error communicating with Gemini. Please try again.*' }
-                  : message,
-              ),
+              messages: conversation.messages.map((message) => {
+                if (message.id !== aiMessageId) return message;
+
+                const normalizedContent = message.content.trim();
+                const retryHint = 'Use **Retry from here** on your message to try again.';
+                const failureContent = normalizedContent
+                  ? `${normalizedContent}\n\n---\n\n⚠️ ${errorMessage}\n\n${retryHint}`
+                  : `⚠️ ${errorMessage}\n\n${retryHint}`;
+
+                return { ...message, content: failureContent };
+              }),
               updatedAt: Date.now(),
             };
           }),
         );
       } finally {
         setIsLoading(false);
+        setTimeoutDeadline(null);
+        setTimeoutRemainingMs(null);
       }
     },
     [setConversations],
@@ -127,6 +181,7 @@ export const useChat = ({
         aiMessageId,
         userText,
         historyBeforeSend,
+        trigger: 'send',
       });
     },
     [activeConversation, inputValue, isLoading, setConversations, streamReply],
@@ -158,6 +213,7 @@ export const useChat = ({
         aiMessageId,
         userText,
         historyBeforeSend,
+        trigger: 'retry',
       });
     },
     [activeConversation, isLoading, setConversations, streamReply],
@@ -177,6 +233,7 @@ export const useChat = ({
     inputValue,
     setInputValue,
     isLoading,
+    timeoutRemainingMs,
     sendMessage,
     retryMessage,
     handleInputEnter,

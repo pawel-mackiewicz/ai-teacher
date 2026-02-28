@@ -116,6 +116,7 @@ function App() {
           modelOptions={aiSetup.modelOptions}
           selectedModel={aiSetup.selectedModel}
           isLoading={chat.isLoading}
+          timeoutRemainingMs={chat.timeoutRemainingMs}
           isModelLoading={aiSetup.isModelLoading}
           onModelChange={aiSetup.changeModel}
         />

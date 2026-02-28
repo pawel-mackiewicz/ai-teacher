@@ -12,8 +12,31 @@ export interface FetchModelsResult {
   usedFallback: boolean;
 }
 
+export interface ChatRequestContext {
+  conversationId?: string;
+  aiMessageId?: string;
+  trigger?: 'send' | 'retry';
+}
+
+export interface SendMessageToAIOptions {
+  firstTokenTimeoutMs?: number;
+  betweenChunksTimeoutMs?: number;
+  requestContext?: ChatRequestContext;
+}
+
+type ChatRequestErrorCategory =
+  | 'first_token_timeout'
+  | 'between_tokens_timeout'
+  | 'auth_error'
+  | 'http_error'
+  | 'network_error'
+  | 'empty_response'
+  | 'unknown';
+
 const GEMINI_MODELS_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+export const CHAT_STREAM_FIRST_TOKEN_TIMEOUT_MS = 100_000;
+export const CHAT_STREAM_BETWEEN_TOKENS_TIMEOUT_MS = 25_000;
 
 let activeApiKey: string | null = null;
 let activeModelId = DEFAULT_GEMINI_MODEL;
@@ -121,6 +144,68 @@ const processSseResponse = async (response: Response, onChunk: (text: string) =>
   return fullText;
 };
 
+class GeminiChatRequestError extends Error {
+  category: ChatRequestErrorCategory;
+  httpStatus?: number;
+
+  constructor(message: string, category: ChatRequestErrorCategory, httpStatus?: number) {
+    super(message);
+    this.category = category;
+    this.httpStatus = httpStatus;
+    this.name = 'GeminiChatRequestError';
+  }
+}
+
+const toTimeoutSeconds = (valueMs: number): number => Math.max(1, Math.round(valueMs / 1000));
+
+const toAbortError = (
+  category: 'first_token_timeout' | 'between_tokens_timeout',
+  firstTokenTimeoutMs: number,
+  betweenTokensTimeoutMs: number,
+): GeminiChatRequestError => {
+  if (category === 'first_token_timeout') {
+    return new GeminiChatRequestError(
+      `Gemini did not send the first response token within ${toTimeoutSeconds(firstTokenTimeoutMs)} seconds. Use "Retry from here" to try again.`,
+      category,
+    );
+  }
+
+  return new GeminiChatRequestError(
+    `Gemini stopped streaming for more than ${toTimeoutSeconds(betweenTokensTimeoutMs)} seconds. Use "Retry from here" to try again.`,
+    category,
+  );
+};
+
+const normalizeChatRequestError = (
+  error: unknown,
+  abortCategory: 'first_token_timeout' | 'between_tokens_timeout' | null,
+  firstTokenTimeoutMs: number,
+  betweenTokensTimeoutMs: number,
+): GeminiChatRequestError => {
+  if (error instanceof GeminiChatRequestError) return error;
+
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    if (abortCategory) return toAbortError(abortCategory, firstTokenTimeoutMs, betweenTokensTimeoutMs);
+    return new GeminiChatRequestError(
+      'Gemini request was interrupted. Use "Retry from here" to try again.',
+      'network_error',
+    );
+  }
+
+  if (error instanceof TypeError) {
+    return new GeminiChatRequestError(
+      'Network error while contacting Gemini. Check your connection and retry.',
+      'network_error',
+    );
+  }
+
+  if (error instanceof Error) {
+    return new GeminiChatRequestError(error.message || 'Gemini request failed.', 'unknown');
+  }
+
+  return new GeminiChatRequestError('Gemini request failed unexpectedly.', 'unknown');
+};
+
 export const initializeAI = (apiKey: string): void => {
   const normalizedKey = apiKey.trim();
   if (!normalizedKey) {
@@ -200,10 +285,15 @@ export const sendMessageToAI = async (
   message: string,
   history: ChatMessage[],
   onChunk: (text: string) => void,
+  options: SendMessageToAIOptions = {},
 ): Promise<string> => {
   if (!activeApiKey) {
     throw new Error('AI not initialized.');
   }
+
+  const firstTokenTimeoutMs = options.firstTokenTimeoutMs ?? CHAT_STREAM_FIRST_TOKEN_TIMEOUT_MS;
+  const betweenChunksTimeoutMs = options.betweenChunksTimeoutMs ?? CHAT_STREAM_BETWEEN_TOKENS_TIMEOUT_MS;
+  const requestStartedAt = Date.now();
 
   const payload = {
     systemInstruction: {
@@ -221,25 +311,95 @@ export const sendMessageToAI = async (
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(activeModelId)}` +
     `:streamGenerateContent?alt=sse&key=${encodeURIComponent(activeApiKey)}`;
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+  const endpointForLogs = `models/${activeModelId}:streamGenerateContent`;
+  const abortController = new AbortController();
+  let streamTimer: ReturnType<typeof setTimeout> | undefined;
+  let abortCategory: 'first_token_timeout' | 'between_tokens_timeout' | null = null;
+  let hadPartialResponse = false;
+  let firstTokenReceived = false;
 
-  if (response.status === 401 || response.status === 403) {
-    throw new Error('Gemini request was rejected. Check your API key and permissions.');
+  const scheduleStreamTimeout = (
+    timeoutMs: number,
+    nextCategory: 'first_token_timeout' | 'between_tokens_timeout',
+  ) => {
+    if (streamTimer) clearTimeout(streamTimer);
+    streamTimer = setTimeout(() => {
+      abortCategory = nextCategory;
+      abortController.abort();
+    }, timeoutMs);
+  };
+
+  const clearTimer = () => {
+    if (streamTimer) clearTimeout(streamTimer);
+  };
+
+  scheduleStreamTimeout(firstTokenTimeoutMs, 'first_token_timeout');
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: abortController.signal,
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      throw new GeminiChatRequestError(
+        'Gemini request was rejected. Check your API key and permissions.',
+        'auth_error',
+        response.status,
+      );
+    }
+
+    if (!response.ok) {
+      throw new GeminiChatRequestError(`Gemini request failed with status ${response.status}.`, 'http_error', response.status);
+    }
+
+    const fullText = await processSseResponse(response, (text) => {
+      if (!firstTokenReceived) firstTokenReceived = true;
+      scheduleStreamTimeout(betweenChunksTimeoutMs, 'between_tokens_timeout');
+      if (text.trim().length > 0) hadPartialResponse = true;
+      onChunk(text);
+    });
+
+    if (!fullText.trim()) {
+      throw new GeminiChatRequestError(
+        'Gemini returned an empty response. Use "Retry from here" to try again.',
+        'empty_response',
+      );
+    }
+
+    addLog('llm_response', `Received response from ${activeModelId}`, { text: fullText });
+    return fullText;
+  } catch (error) {
+    const normalizedError = normalizeChatRequestError(
+      error,
+      abortCategory,
+      firstTokenTimeoutMs,
+      betweenChunksTimeoutMs,
+    );
+    const durationMs = Date.now() - requestStartedAt;
+
+    addLog('error', `Gemini chat request failed (${normalizedError.category})`, {
+      requestType: 'chat',
+      modelId: activeModelId,
+      endpoint: endpointForLogs,
+      errorCategory: normalizedError.category,
+      errorMessage: normalizedError.message,
+      httpStatus: normalizedError.httpStatus,
+      durationMs,
+      hadPartialResponse,
+      conversationId: options.requestContext?.conversationId,
+      aiMessageId: options.requestContext?.aiMessageId,
+      trigger: options.requestContext?.trigger,
+    });
+
+    throw normalizedError;
+  } finally {
+    clearTimer();
   }
-
-  if (!response.ok) {
-    throw new Error(`Gemini request failed with status ${response.status}.`);
-  }
-
-  const fullText = await processSseResponse(response, onChunk);
-  addLog('llm_response', `Received response from ${activeModelId}`, { text: fullText });
-  return fullText;
 };
 
 export const generateFlashcards = async (
