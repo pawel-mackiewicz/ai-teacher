@@ -1,5 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   /* Color Palette - Premium Dark Mode */
   --bg-main: #0a0a0c;
@@ -12,10 +16,11 @@
   --text-secondary: #a0a0ab;
   --text-tertiary: #6b6b76;
 
-  --accent-primary: #6366f1; /* Indigo */
+  --accent-primary: #6366f1;
+  /* Indigo */
   --accent-primary-hover: #4f46e5;
   --accent-glow: rgba(99, 102, 241, 0.15);
-  
+
   --accent-success: #10b981;
   --accent-warning: #f59e0b;
   --accent-danger: #ef4444;
@@ -48,13 +53,16 @@
 }
 
 /* Base Reset */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   width: 100%;
   background-color: var(--bg-main);
@@ -64,7 +72,8 @@ html, body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow: hidden; /* Prevent scrolling on body, let inner layout scroll */
+  overflow: hidden;
+  /* Prevent scrolling on body, let inner layout scroll */
 }
 
 #root {
@@ -74,7 +83,12 @@ html, body {
 }
 
 /* Typography styles */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-display);
   font-weight: 600;
   line-height: 1.2;
@@ -93,7 +107,8 @@ button {
   transition: all var(--transition-fast);
 }
 
-input, textarea {
+input,
+textarea {
   font-family: inherit;
   border: none;
   outline: none;
@@ -101,24 +116,42 @@ input, textarea {
   color: inherit;
 }
 
-input::placeholder, textarea::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: var(--text-tertiary);
 }
 
 /* Utility Animations */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 /* Custom Scrollbar */
@@ -159,7 +192,8 @@ input::placeholder, textarea::placeholder {
   font-weight: 600;
 }
 
-.prose ul, .prose ol {
+.prose ul,
+.prose ol {
   margin-bottom: 1rem;
   padding-left: 1.5rem;
 }
@@ -168,13 +202,18 @@ input::placeholder, textarea::placeholder {
   margin-bottom: 0.25rem;
 }
 
-.prose h1, .prose h2, .prose h3, .prose h4 {
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
   color: var(--text-primary);
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
 }
 
-.prose h1:first-child, .prose h2:first-child, .prose h3:first-child {
+.prose h1:first-child,
+.prose h2:first-child,
+.prose h3:first-child {
   margin-top: 0;
 }
 
