@@ -1,4 +1,5 @@
 import { SYSTEM_PROMPT } from './prompt';
+import { addLog } from './logger';
 
 export interface ChatMessage {
   role: 'user' | 'ai';
@@ -214,6 +215,8 @@ export const sendMessageToAI = async (
     },
   };
 
+  addLog('llm_prompt', `Sending message to ${activeModelId}`, payload);
+
   const endpoint =
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(activeModelId)}` +
     `:streamGenerateContent?alt=sse&key=${encodeURIComponent(activeApiKey)}`;
@@ -234,7 +237,9 @@ export const sendMessageToAI = async (
     throw new Error(`Gemini request failed with status ${response.status}.`);
   }
 
-  return processSseResponse(response, onChunk);
+  const fullText = await processSseResponse(response, onChunk);
+  addLog('llm_response', `Received response from ${activeModelId}`, { text: fullText });
+  return fullText;
 };
 
 export const generateFlashcards = async (
@@ -269,6 +274,8 @@ JSON Format:
     },
   };
 
+  addLog('llm_prompt', `Generating flashcards using ${activeModelId}`, payload);
+
   const endpoint =
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(activeModelId)}` +
     `:generateContent?key=${encodeURIComponent(activeApiKey)}`;
@@ -291,6 +298,8 @@ JSON Format:
   if (!text) {
     throw new Error('Gemini returned an empty response.');
   }
+
+  addLog('llm_response', `Received flashcards response from ${activeModelId}`, { text });
 
   try {
     const parsed = JSON.parse(text);

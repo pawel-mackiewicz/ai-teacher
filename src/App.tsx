@@ -10,6 +10,8 @@ import {
   type ChatMessage,
 } from './ai-service';
 import { calculateNextSRSDelay, type SRSData } from './srs';
+import { addLog } from './logger';
+import { SystemLogsButton } from './LogsViewer';
 import './App.css';
 
 interface Message {
@@ -286,6 +288,7 @@ function App() {
     setActiveConversationId(nextConversation.id);
     setInputValue('');
     setIsFlashcardsView(false);
+    addLog('action', 'Created new conversation');
   };
 
   const handleCreateFlashcards = async () => {
@@ -336,6 +339,7 @@ function App() {
 
     setIsCardRevealed(false);
     setCurrentStudyCardId(null);
+    addLog('action', `Reviewed flashcard ${cardId} with rating ${rating}`);
   };
 
   const handleSetApiKey = async (e: React.FormEvent) => {
@@ -378,6 +382,8 @@ function App() {
     }));
 
     setInputValue('');
+
+    addLog('action', `Sent message in conversation`);
 
     const newUserMessage: Message = { id: createId(), role: 'user', content: userText };
     const aiMessageId = createId();
@@ -515,6 +521,8 @@ function App() {
         >
           Flashcards ({dueCards.length} due)
         </button>
+
+        <SystemLogsButton />
 
         <div className="sidebar-header sidebar-header-row" style={{ marginTop: '20px' }}>
           <h2>Conversations</h2>

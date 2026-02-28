@@ -11,7 +11,7 @@ export const calculateNextSRSDelay = (
     let { interval, repetition, easinessFactor } = current;
 
     // Use the SM-2 Quality scale directly
-    let q = rating;
+    const q = rating;
 
     // SM-2 Interval & Repetition updates
     if (q < 3) {
