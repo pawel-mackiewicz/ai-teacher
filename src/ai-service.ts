@@ -24,6 +24,14 @@ export interface SendMessageToAIOptions {
   requestContext?: ChatRequestContext;
 }
 
+export type FlashcardEvaluationScore = 0 | 1 | 2 | 3 | 4 | 5;
+
+export interface FlashcardEvaluationResult {
+  score: FlashcardEvaluationScore;
+  argumentation: string;
+  tips: string[];
+}
+
 type ChatRequestErrorCategory =
   | 'first_token_timeout'
   | 'between_tokens_timeout'
@@ -96,6 +104,55 @@ const parseChunkText = (payload: unknown): string => {
   return parts
     .map((part) => (typeof part.text === 'string' ? part.text : ''))
     .join('');
+};
+
+const parseFlashcardEvaluationResult = (text: string): FlashcardEvaluationResult => {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error('Failed to parse flashcard evaluation JSON from AI response.');
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('Flashcard evaluation JSON schema is invalid.');
+  }
+
+  const payload = parsed as {
+    score?: unknown;
+    argumentation?: unknown;
+    tips?: unknown;
+  };
+
+  if (!Number.isInteger(payload.score)) {
+    throw new Error('Flashcard evaluation score must be an integer between 0 and 5.');
+  }
+
+  const normalizedScore = Math.max(0, Math.min(5, Number(payload.score))) as FlashcardEvaluationScore;
+
+  if (typeof payload.argumentation !== 'string' || payload.argumentation.trim().length === 0) {
+    throw new Error('Flashcard evaluation argumentation must be a non-empty string.');
+  }
+
+  if (!Array.isArray(payload.tips)) {
+    throw new Error('Flashcard evaluation tips must be a non-empty array of strings.');
+  }
+
+  const normalizedTips = payload.tips
+    .filter((tip): tip is string => typeof tip === 'string')
+    .map((tip) => tip.trim())
+    .filter((tip) => tip.length > 0);
+
+  if (normalizedTips.length === 0) {
+    throw new Error('Flashcard evaluation tips must include at least one tip.');
+  }
+
+  return {
+    score: normalizedScore,
+    argumentation: payload.argumentation.trim(),
+    tips: normalizedTips,
+  };
 };
 
 const toGeminiRole = (role: ChatMessage['role']): 'user' | 'model' => {
@@ -425,6 +482,100 @@ export const sendMessageToAI = async (
     throw normalizedError;
   } finally {
     clearTimer();
+  }
+};
+
+export const evaluateFlashcardAnswer = async (
+  question: string,
+  referenceAnswer: string,
+  userAnswer: string,
+): Promise<FlashcardEvaluationResult> => {
+  if (!activeApiKey) {
+    throw new Error('AI not initialized.');
+  }
+
+  const prompt = `Evaluate the user's flashcard answer.
+
+Question:
+${question}
+
+Reference answer:
+${referenceAnswer}
+
+User answer:
+${userAnswer}
+
+Score rubric:
+- 0: Blank, totally incorrect, or irrelevant
+- 1: Mostly incorrect with only tiny correct fragments
+- 2: Partially correct but key concepts missing or wrong
+- 3: Mostly correct but important gaps or inaccuracies remain
+- 4: Correct with minor omissions or imprecision
+- 5: Correct, complete, and precise
+
+Respond with valid JSON only in this exact format:
+{
+  "score": 0,
+  "argumentation": "Short explanation of what was right/wrong.",
+  "tips": ["Actionable tip 1", "Actionable tip 2"]
+}`;
+
+  const payload = {
+    systemInstruction: {
+      parts: [{ text: 'You are an expert tutor. Output valid JSON ONLY.' }],
+    },
+    contents: createRequestContents([], prompt),
+    generationConfig: {
+      maxOutputTokens: 2048,
+      responseMimeType: 'application/json',
+    },
+  };
+
+  addLog('llm_prompt', `Evaluating flashcard answer using ${activeModelId}`, payload);
+
+  const endpoint =
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(activeModelId)}` +
+    `:generateContent?key=${encodeURIComponent(activeApiKey)}`;
+  const endpointForLogs = `models/${activeModelId}:generateContent`;
+  const requestStartedAt = Date.now();
+  let httpStatus: number | undefined;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    httpStatus = response.status;
+    if (!response.ok) {
+      throw new Error(`Gemini request failed with status ${response.status}.`);
+    }
+
+    const data = await response.json();
+    const text = parseChunkText(data);
+
+    if (!text) {
+      throw new Error('Gemini returned an empty flashcard evaluation response.');
+    }
+
+    addLog('llm_response', `Received flashcard evaluation response from ${activeModelId}`, { text });
+    return parseFlashcardEvaluationResult(text);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Gemini flashcard evaluation failed unexpectedly.';
+    addLog('error', 'Gemini flashcard evaluation request failed', {
+      requestType: 'flashcard_evaluation',
+      modelId: activeModelId,
+      endpoint: endpointForLogs,
+      errorMessage,
+      httpStatus,
+      durationMs: Date.now() - requestStartedAt,
+    });
+
+    if (error instanceof Error) throw error;
+    throw new Error('Gemini flashcard evaluation failed.');
   }
 };
 

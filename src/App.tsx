@@ -133,10 +133,18 @@ function App() {
 
         {flashcards.isFlashcardsView ? (
           <FlashcardsPanel
+            key={flashcards.currentCard?.id ?? 'flashcards-empty'}
             currentCard={flashcards.currentCard}
             flashcardsCount={flashcards.flashcards.length}
-            isCardRevealed={flashcards.isCardRevealed}
-            onRevealAnswer={flashcards.revealCard}
+            isEvaluatingAnswer={flashcards.isEvaluatingAnswer}
+            evaluationError={flashcards.evaluationError}
+            pendingEvaluation={flashcards.pendingEvaluation}
+            requiresCorrection={flashcards.requiresCorrection}
+            isCorrectionSubmitted={flashcards.isCorrectionSubmitted}
+            correctedAnswer={flashcards.correctedAnswer}
+            onSubmitAnswerForEvaluation={flashcards.submitAnswerForEvaluation}
+            onSubmitCorrection={flashcards.submitCorrection}
+            onAcceptEvaluationAndContinue={flashcards.acceptEvaluationAndContinue}
             onReviewFlashcard={flashcards.reviewFlashcard}
           />
         ) : (

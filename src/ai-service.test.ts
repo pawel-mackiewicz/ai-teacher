@@ -8,7 +8,12 @@ vi.mock('./logger', () => ({
   addLog: addLogMock,
 }));
 
-import { initializeAI, sendMessageToAI, setActiveModel } from './ai-service';
+import {
+  evaluateFlashcardAnswer,
+  initializeAI,
+  sendMessageToAI,
+  setActiveModel,
+} from './ai-service';
 
 const createAbortablePendingFetch = () =>
   vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
@@ -76,6 +81,26 @@ const findErrorLogDetails = (): unknown => {
   const errorCall = addLogMock.mock.calls.find(([type]) => type === 'error');
   if (!errorCall) return null;
   return errorCall[2];
+};
+
+const createGenerateContentResponse = (text: string, status: number = 200): Response => {
+  return new Response(
+    JSON.stringify({
+      candidates: [
+        {
+          content: {
+            parts: [{ text }],
+          },
+        },
+      ],
+    }),
+    {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    },
+  );
 };
 
 describe('sendMessageToAI', () => {
@@ -204,5 +229,106 @@ describe('sendMessageToAI', () => {
         errorCategory: 'network_error',
       }),
     );
+  });
+});
+
+describe('evaluateFlashcardAnswer', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    initializeAI('secret-key');
+    setActiveModel('gemini-2.5-flash');
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('parses valid flashcard evaluation payload', async () => {
+    const evaluationJson = JSON.stringify({
+      score: 4,
+      argumentation: 'Mostly correct, but one key detail is missing.',
+      tips: ['Mention the missing detail explicitly.', 'Add one concrete example.'],
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(createGenerateContentResponse(evaluationJson)),
+    );
+
+    await expect(
+      evaluateFlashcardAnswer('What is closure?', 'Closure captures lexical scope.', 'It remembers variables.'),
+    ).resolves.toEqual({
+      score: 4,
+      argumentation: 'Mostly correct, but one key detail is missing.',
+      tips: ['Mention the missing detail explicitly.', 'Add one concrete example.'],
+    });
+  });
+
+  it('rejects malformed JSON output from Gemini', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(createGenerateContentResponse('{not-json')),
+    );
+
+    await expect(
+      evaluateFlashcardAnswer('Q', 'A', 'User answer'),
+    ).rejects.toThrow('Failed to parse flashcard evaluation JSON');
+
+    expect(addLogMock).toHaveBeenCalledWith(
+      'error',
+      'Gemini flashcard evaluation request failed',
+      expect.objectContaining({
+        requestType: 'flashcard_evaluation',
+      }),
+    );
+  });
+
+  it('rejects invalid flashcard evaluation schema', async () => {
+    const invalidSchemaJson = JSON.stringify({
+      score: 2,
+      argumentation: 'Needs work.',
+      tips: [],
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(createGenerateContentResponse(invalidSchemaJson)),
+    );
+
+    await expect(
+      evaluateFlashcardAnswer('Q', 'A', 'User answer'),
+    ).rejects.toThrow('Flashcard evaluation tips must include at least one tip.');
+  });
+
+  it('fails when Gemini returns non-ok status', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response('failed', { status: 503 })),
+    );
+
+    await expect(
+      evaluateFlashcardAnswer('Q', 'A', 'User answer'),
+    ).rejects.toThrow('Gemini request failed with status 503.');
+  });
+
+  it('clamps out-of-range score into 0..5 range', async () => {
+    const outOfRangeScoreJson = JSON.stringify({
+      score: 9,
+      argumentation: 'Correct answer.',
+      tips: ['Stay concise.'],
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(createGenerateContentResponse(outOfRangeScoreJson)),
+    );
+
+    await expect(
+      evaluateFlashcardAnswer('Q', 'A', 'User answer'),
+    ).resolves.toEqual({
+      score: 5,
+      argumentation: 'Correct answer.',
+      tips: ['Stay concise.'],
+    });
   });
 });
