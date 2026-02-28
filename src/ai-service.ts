@@ -35,8 +35,34 @@ type ChatRequestErrorCategory =
 
 const GEMINI_MODELS_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
-export const CHAT_STREAM_FIRST_TOKEN_TIMEOUT_MS = 100_000;
-export const CHAT_STREAM_BETWEEN_TOKENS_TIMEOUT_MS = 25_000;
+const DEFAULT_CHAT_STREAM_FIRST_TOKEN_TIMEOUT_SECONDS = 100;
+const DEFAULT_CHAT_STREAM_BETWEEN_TOKENS_TIMEOUT_SECONDS = 25;
+
+const readTimeoutSecondsFromEnv = (key: string, fallbackSeconds: number): number => {
+  const env = import.meta.env as Record<string, string | undefined>;
+  const rawValue = env[key];
+  if (!rawValue) return fallbackSeconds;
+
+  const parsed = Number(rawValue);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallbackSeconds;
+
+  return Math.round(parsed);
+};
+
+const toMs = (seconds: number): number => seconds * 1000;
+
+export const CHAT_STREAM_FIRST_TOKEN_TIMEOUT_MS = toMs(
+  readTimeoutSecondsFromEnv(
+    'VITE_CHAT_STREAM_FIRST_TOKEN_TIMEOUT_SECONDS',
+    DEFAULT_CHAT_STREAM_FIRST_TOKEN_TIMEOUT_SECONDS,
+  ),
+);
+export const CHAT_STREAM_BETWEEN_TOKENS_TIMEOUT_MS = toMs(
+  readTimeoutSecondsFromEnv(
+    'VITE_CHAT_STREAM_BETWEEN_TOKENS_TIMEOUT_SECONDS',
+    DEFAULT_CHAT_STREAM_BETWEEN_TOKENS_TIMEOUT_SECONDS,
+  ),
+);
 
 let activeApiKey: string | null = null;
 let activeModelId = DEFAULT_GEMINI_MODEL;

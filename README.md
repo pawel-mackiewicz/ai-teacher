@@ -5,6 +5,19 @@ npm install
 npm run dev
 ```
 
+## Chat timeout config
+
+You can tune Gemini chat stream timeouts with Vite env vars (values are in seconds):
+
+- `VITE_CHAT_STREAM_FIRST_TOKEN_TIMEOUT_SECONDS` (default: `100`)
+- `VITE_CHAT_STREAM_BETWEEN_TOKENS_TIMEOUT_SECONDS` (default: `25`)
+
+Example:
+
+```bash
+cp .env.example .env
+```
+
 ## Security warning (Gemini API key in browser storage)
 
 This app stores the Gemini API key in browser storage (`localStorage`) when you submit it in the setup screen.
