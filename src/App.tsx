@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import {
   fetchGeminiModels,
@@ -16,21 +16,136 @@ interface Message {
   content: string;
 }
 
+interface Conversation {
+  id: string;
+  title: string;
+  topic: string | null;
+  messages: Message[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 const API_KEY_STORAGE_KEY = 'aiTeacher.geminiApiKey';
 const MODEL_STORAGE_KEY = 'aiTeacher.geminiModel';
+const CONVERSATIONS_STORAGE_KEY = 'aiTeacher.conversations';
+const ACTIVE_CONVERSATION_STORAGE_KEY = 'aiTeacher.activeConversationId';
+const DEFAULT_CONVERSATION_TITLE = 'New conversation';
+const MAX_CONVERSATION_TITLE_LENGTH = 52;
+const EMPTY_MESSAGES: Message[] = [];
 
 const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) return error.message;
   return 'Unexpected error. Please try again.';
 };
 
+const createId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
+const toConversationTitle = (value: string): string => {
+  const normalized = value.trim().replace(/\s+/g, ' ');
+  if (!normalized) return DEFAULT_CONVERSATION_TITLE;
+  if (normalized.length <= MAX_CONVERSATION_TITLE_LENGTH) return normalized;
+  return `${normalized.slice(0, MAX_CONVERSATION_TITLE_LENGTH - 3)}...`;
+};
+
+const toMessagePreview = (messages: Message[]): string => {
+  const lastWithContent = [...messages].reverse().find((entry) => entry.content.trim().length > 0);
+  if (!lastWithContent) return 'No messages yet';
+
+  const normalized = lastWithContent.content.trim().replace(/\s+/g, ' ');
+  if (normalized.length <= 72) return normalized;
+  return `${normalized.slice(0, 69)}...`;
+};
+
+const formatConversationTimestamp = (value: number): string => {
+  const date = new Date(value);
+  const now = new Date();
+  const isSameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+
+  if (isSameDay) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+};
+
+const normalizeMessages = (value: unknown): Message[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter(
+      (entry): entry is { id?: unknown; role?: unknown; content?: unknown } =>
+        typeof entry === 'object' && entry !== null,
+    )
+    .map((entry) => ({
+      id: typeof entry.id === 'string' && entry.id ? entry.id : createId(),
+      role: entry.role === 'user' ? 'user' : 'ai',
+      content: typeof entry.content === 'string' ? entry.content : '',
+    }));
+};
+
+const createConversation = (): Conversation => {
+  const now = Date.now();
+  return {
+    id: createId(),
+    title: DEFAULT_CONVERSATION_TITLE,
+    topic: null,
+    messages: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+};
+
+const loadStoredConversations = (): Conversation[] => {
+  const raw = localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
+  if (!raw) return [createConversation()];
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [createConversation()];
+
+    const normalized = parsed
+      .filter((entry): entry is Record<string, unknown> => typeof entry === 'object' && entry !== null)
+      .map((entry) => {
+        const messages = normalizeMessages(entry.messages);
+        const fallbackTitle = messages.find((msg) => msg.role === 'user')?.content || '';
+        const createdAt = Number.isFinite(entry.createdAt) ? Number(entry.createdAt) : Date.now();
+        const updatedAt = Number.isFinite(entry.updatedAt) ? Number(entry.updatedAt) : createdAt;
+
+        return {
+          id: typeof entry.id === 'string' && entry.id ? entry.id : createId(),
+          title:
+            typeof entry.title === 'string' && entry.title.trim()
+              ? toConversationTitle(entry.title)
+              : toConversationTitle(fallbackTitle),
+          topic: typeof entry.topic === 'string' && entry.topic.trim() ? entry.topic : null,
+          messages,
+          createdAt,
+          updatedAt,
+        };
+      });
+
+    return normalized.length > 0 ? normalized : [createConversation()];
+  } catch {
+    return [createConversation()];
+  }
+};
+
 function App() {
   const [apiKey, setApiKey] = useState('');
   const [isApiKeySet, setIsApiKeySet] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [topic, setTopic] = useState<string | null>(null);
   const [modelOptions, setModelOptions] = useState<string[]>([getDefaultModel()]);
   const [selectedModel, setSelectedModel] = useState(getDefaultModel());
   const [isModelLoading, setIsModelLoading] = useState(false);
@@ -39,6 +154,19 @@ function App() {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const activeConversation = useMemo(
+    () => conversations.find((conversation) => conversation.id === activeConversationId) || null,
+    [conversations, activeConversationId],
+  );
+  const messages = useMemo(
+    () => activeConversation?.messages || EMPTY_MESSAGES,
+    [activeConversation],
+  );
+  const topic = activeConversation?.topic || null;
+  const sortedConversations = useMemo(
+    () => [...conversations].sort((left, right) => right.updatedAt - left.updatedAt),
+    [conversations],
+  );
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -65,6 +193,17 @@ function App() {
 
   useEffect(() => {
     const bootstrap = async () => {
+      const storedConversations = loadStoredConversations();
+      const storedActiveConversationId = localStorage.getItem(ACTIVE_CONVERSATION_STORAGE_KEY);
+      const selectedConversationId =
+        storedActiveConversationId &&
+        storedConversations.some((conversation) => conversation.id === storedActiveConversationId)
+          ? storedActiveConversationId
+          : storedConversations[0].id;
+
+      setConversations(storedConversations);
+      setActiveConversationId(selectedConversationId);
+
       const storedApiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
       const storedModel = localStorage.getItem(MODEL_STORAGE_KEY);
 
@@ -92,6 +231,25 @@ function App() {
 
     void bootstrap();
   }, []);
+
+  useEffect(() => {
+    if (conversations.length === 0) return;
+    localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
+  }, [conversations]);
+
+  useEffect(() => {
+    if (!activeConversationId) return;
+    localStorage.setItem(ACTIVE_CONVERSATION_STORAGE_KEY, activeConversationId);
+  }, [activeConversationId]);
+
+  const handleCreateConversation = () => {
+    if (isLoading) return;
+
+    const nextConversation = createConversation();
+    setConversations((prev) => [nextConversation, ...prev]);
+    setActiveConversationId(nextConversation.id);
+    setInputValue('');
+  };
 
   const handleSetApiKey = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,39 +281,67 @@ function App() {
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!inputValue.trim() || isLoading) return;
+    if (!inputValue.trim() || isLoading || !activeConversation) return;
 
     const userText = inputValue.trim();
-    const historyBeforeSend: ChatMessage[] = messages.map((entry) => ({
+    const currentConversationId = activeConversation.id;
+    const historyBeforeSend: ChatMessage[] = activeConversation.messages.map((entry) => ({
       role: entry.role,
       content: entry.content,
     }));
 
     setInputValue('');
 
-    if (!topic && messages.length === 0) {
-      setTopic(userText);
-    }
+    const newUserMessage: Message = { id: createId(), role: 'user', content: userText };
+    const aiMessageId = createId();
 
-    const newUserMessage: Message = { id: Date.now().toString(), role: 'user', content: userText };
-    const aiMessageId = (Date.now() + 1).toString();
+    setConversations((prev) =>
+      prev.map((conversation) => {
+        if (conversation.id !== currentConversationId) return conversation;
 
-    setMessages((prev) => [...prev, newUserMessage, { id: aiMessageId, role: 'ai', content: '' }]);
+        return {
+          ...conversation,
+          topic: conversation.topic || userText,
+          title: conversation.messages.length === 0 ? toConversationTitle(userText) : conversation.title,
+          messages: [...conversation.messages, newUserMessage, { id: aiMessageId, role: 'ai', content: '' }],
+          updatedAt: Date.now(),
+        };
+      }),
+    );
+
     setIsLoading(true);
 
     try {
       await sendMessageToAI(userText, historyBeforeSend, (chunk) => {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === aiMessageId ? { ...msg, content: chunk } : msg,
-          ),
+        setConversations((prev) =>
+          prev.map((conversation) => {
+            if (conversation.id !== currentConversationId) return conversation;
+
+            return {
+              ...conversation,
+              messages: conversation.messages.map((msg) =>
+                msg.id === aiMessageId ? { ...msg, content: chunk } : msg,
+              ),
+              updatedAt: Date.now(),
+            };
+          }),
         );
       });
     } catch {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === aiMessageId ? { ...msg, content: '⚠️ *Error communicating with Gemini. Please try again.*' } : msg,
-        ),
+      setConversations((prev) =>
+        prev.map((conversation) => {
+          if (conversation.id !== currentConversationId) return conversation;
+
+          return {
+            ...conversation,
+            messages: conversation.messages.map((msg) =>
+              msg.id === aiMessageId
+                ? { ...msg, content: '⚠️ *Error communicating with Gemini. Please try again.*' }
+                : msg,
+            ),
+            updatedAt: Date.now(),
+          };
+        }),
       );
     } finally {
       setIsLoading(false);
@@ -220,6 +406,34 @@ function App() {
   return (
     <div className="app-container">
       <aside className="app-sidebar">
+        <div className="sidebar-header sidebar-header-row">
+          <h2>Conversations</h2>
+          <button
+            type="button"
+            className="new-chat-btn"
+            onClick={handleCreateConversation}
+            disabled={isLoading}
+          >
+            New
+          </button>
+        </div>
+        <div className="conversation-list" aria-label="Saved conversations">
+          {sortedConversations.map((conversation) => (
+            <button
+              key={conversation.id}
+              type="button"
+              className={`conversation-item ${conversation.id === activeConversationId ? 'active' : ''}`}
+              onClick={() => setActiveConversationId(conversation.id)}
+              disabled={isLoading}
+            >
+              <span className="conversation-title">{conversation.title}</span>
+              <span className="conversation-preview">{toMessagePreview(conversation.messages)}</span>
+              <span className="conversation-meta">{formatConversationTimestamp(conversation.updatedAt)}</span>
+            </button>
+          ))}
+        </div>
+        <div className="sidebar-separator" />
+
         <div className="sidebar-header">
           <h2>Learning Blueprint</h2>
         </div>
