@@ -19,7 +19,8 @@ function App() {
   const conversations = useConversations();
   const flashcards = useFlashcards();
   const words = useWords();
-  const [isWordsView, setIsWordsView] = useState(false);
+  const [isWordsReviewView, setIsWordsReviewView] = useState(false);
+  const [isWordsManageView, setIsWordsManageView] = useState(false);
   const chat = useChat({
     activeConversation: conversations.activeConversation,
     setConversations: conversations.setConversations,
@@ -36,7 +37,8 @@ function App() {
     conversations.createNewConversation();
     chat.setInputValue('');
     flashcards.setIsFlashcardsView(false);
-    setIsWordsView(false);
+    setIsWordsReviewView(false);
+    setIsWordsManageView(false);
   };
 
   const handleDeleteConversation = (e: MouseEvent<HTMLButtonElement>, id: string) => {
@@ -55,7 +57,8 @@ function App() {
 
     conversations.selectConversation(conversationId);
     flashcards.setIsFlashcardsView(false);
-    setIsWordsView(false);
+    setIsWordsReviewView(false);
+    setIsWordsManageView(false);
   };
 
   const handleCreateFlashcards = async () => {
@@ -108,7 +111,8 @@ function App() {
     <div className="app-container">
       <AppSidebar
         isFlashcardsView={flashcards.isFlashcardsView}
-        isWordsView={isWordsView}
+        isWordsReviewView={isWordsReviewView}
+        isWordsManageView={isWordsManageView}
         dueCardsCount={flashcards.dueCardsCount}
         wordsDueCardsCount={words.dueCardsCount}
         sortedConversations={conversations.sortedConversations}
@@ -116,10 +120,17 @@ function App() {
         isLoading={chat.isLoading}
         onOpenFlashcards={() => {
           flashcards.setIsFlashcardsView(true);
-          setIsWordsView(false);
+          setIsWordsReviewView(false);
+          setIsWordsManageView(false);
         }}
-        onOpenWords={() => {
-          setIsWordsView(true);
+        onOpenWordsReview={() => {
+          setIsWordsReviewView(true);
+          setIsWordsManageView(false);
+          flashcards.setIsFlashcardsView(false);
+        }}
+        onOpenWordsManage={() => {
+          setIsWordsManageView(true);
+          setIsWordsReviewView(false);
           flashcards.setIsFlashcardsView(false);
         }}
         onCreateConversation={handleCreateConversation}
@@ -130,7 +141,8 @@ function App() {
       <main className="app-main">
         <MainHeader
           isFlashcardsView={flashcards.isFlashcardsView}
-          isWordsView={isWordsView}
+          isWordsReviewView={isWordsReviewView}
+          isWordsManageView={isWordsManageView}
           hasConversationMessages={Boolean(conversations.activeConversation?.messages.length)}
           isGeneratingFlashcards={flashcards.isGeneratingFlashcards}
           onCreateFlashcards={handleCreateFlashcards}
@@ -148,8 +160,8 @@ function App() {
           </div>
         ) : null}
 
-        {isWordsView ? (
-          <WordsPanel words={words} />
+        {isWordsReviewView || isWordsManageView ? (
+          <WordsPanel words={words} viewMode={isWordsReviewView ? 'review' : 'manage'} />
         ) : flashcards.isFlashcardsView ? (
           <FlashcardsPanel
             key={flashcards.currentCard?.id ?? 'flashcards-empty'}

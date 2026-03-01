@@ -9,14 +9,16 @@ import './AppSidebar.css';
 
 interface AppSidebarProps {
   isFlashcardsView: boolean;
-  isWordsView: boolean;
+  isWordsReviewView: boolean;
+  isWordsManageView: boolean;
   dueCardsCount: number;
   wordsDueCardsCount: number;
   sortedConversations: Conversation[];
   activeConversationId: string;
   isLoading: boolean;
   onOpenFlashcards: () => void;
-  onOpenWords: () => void;
+  onOpenWordsReview: () => void;
+  onOpenWordsManage: () => void;
   onCreateConversation: () => void;
   onSelectConversation: (conversationId: string) => void;
   onDeleteConversation: (e: MouseEvent<HTMLButtonElement>, conversationId: string) => void;
@@ -24,14 +26,16 @@ interface AppSidebarProps {
 
 export function AppSidebar({
   isFlashcardsView,
-  isWordsView,
+  isWordsReviewView,
+  isWordsManageView,
   dueCardsCount,
   wordsDueCardsCount,
   sortedConversations,
   activeConversationId,
   isLoading,
   onOpenFlashcards,
-  onOpenWords,
+  onOpenWordsReview,
+  onOpenWordsManage,
   onCreateConversation,
   onSelectConversation,
   onDeleteConversation,
@@ -61,10 +65,17 @@ export function AppSidebar({
       </button>
 
       <button
-        className={`sidebar-menu-btn ${isWordsView ? 'active' : ''}`}
-        onClick={onOpenWords}
+        className={`sidebar-menu-btn ${isWordsReviewView ? 'active' : ''}`}
+        onClick={onOpenWordsReview}
       >
-        Words ({wordsDueCardsCount} due)
+        Words Review ({wordsDueCardsCount} due)
+      </button>
+
+      <button
+        className={`sidebar-menu-btn ${isWordsManageView ? 'active' : ''}`}
+        onClick={onOpenWordsManage}
+      >
+        Words Generator
       </button>
 
       <SystemLogsButton />
@@ -84,7 +95,7 @@ export function AppSidebar({
         {sortedConversations.map((conversation) => (
           <div
             key={conversation.id}
-            className={`conversation-item ${conversation.id === activeConversationId && !isFlashcardsView && !isWordsView ? 'active' : ''}`}
+            className={`conversation-item ${conversation.id === activeConversationId && !isFlashcardsView && !isWordsReviewView && !isWordsManageView ? 'active' : ''}`}
             onClick={() => {
               if (isLoading) return;
               onSelectConversation(conversation.id);
