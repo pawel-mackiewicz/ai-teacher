@@ -1,292 +1,332 @@
-import { useState, type FormEvent } from 'react';
-import ReactMarkdown from 'react-markdown';
-import type { WordReviewRating } from '../hooks/useWords';
-import type { WordCard, WordNote, WordSettings } from '../types/app';
-import type { WordDraftEntry } from '../hooks/useWords';
+import type { FormEvent } from 'react';
+import { useState } from 'react';
+import type { UseWordsResult, WordReviewRating } from '../hooks/useWords';
 import './WordsPanel.css';
 
 interface WordsPanelProps {
-  settings: WordSettings;
-  dueCardsCount: number;
-  totalCardsCount: number;
-  currentCard: WordCard | null;
-  currentNote: WordNote | null;
-  isEnrichingWord: boolean;
-  isGeneratingTopicWords: boolean;
-  manualError: string | null;
-  topicError: string | null;
-  manualDraft: WordDraftEntry | null;
-  topicDrafts: WordDraftEntry[];
-  onSetTargetLanguage: (value: string) => void;
-  onSetNativeLanguage: (value: string) => void;
-  onEnrichWord: (word: string) => Promise<void>;
-  onUpdateManualDraft: (field: 'word' | 'definition' | 'example' | 'translation', value: string) => void;
-  onSaveManualDraft: () => void;
-  onDiscardManualDraft: () => void;
-  onGenerateTopicDrafts: (topic: string, count: number) => Promise<void>;
-  onUpdateTopicDraft: (id: string, field: 'word' | 'definition' | 'example' | 'translation', value: string) => void;
-  onRemoveTopicDraft: (id: string) => void;
-  onSaveTopicDrafts: () => void;
-  onClearTopicDrafts: () => void;
-  onReviewWordCard: (cardId: string, rating: WordReviewRating) => void;
+    words: UseWordsResult;
 }
 
-const ratingButtons: Array<{ label: string; rating: WordReviewRating }> = [
-  { label: 'Again', rating: 0 },
-  { label: 'Hard', rating: 3 },
-  { label: 'Good', rating: 4 },
-  { label: 'Easy', rating: 5 },
-];
+export function WordsPanel({ words }: WordsPanelProps) {
+    const [manualWordInput, setManualWordInput] = useState('');
+    const [topicInput, setTopicInput] = useState('');
+    const [topicCount, setTopicCount] = useState(10);
+    const [isRevealed, setIsRevealed] = useState(false);
 
-const validDraftRows = (drafts: WordDraftEntry[]): number => drafts.filter((entry) => !entry.isDuplicate && !entry.isIncomplete).length;
+    const handleManualEnrich = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!manualWordInput.trim()) return;
+        await words.enrichWord(manualWordInput);
+    };
 
-export function WordsPanel({
-  settings,
-  dueCardsCount,
-  totalCardsCount,
-  currentCard,
-  currentNote,
-  isEnrichingWord,
-  isGeneratingTopicWords,
-  manualError,
-  topicError,
-  manualDraft,
-  topicDrafts,
-  onSetTargetLanguage,
-  onSetNativeLanguage,
-  onEnrichWord,
-  onUpdateManualDraft,
-  onSaveManualDraft,
-  onDiscardManualDraft,
-  onGenerateTopicDrafts,
-  onUpdateTopicDraft,
-  onRemoveTopicDraft,
-  onSaveTopicDrafts,
-  onClearTopicDrafts,
-  onReviewWordCard,
-}: WordsPanelProps) {
-  const [manualWordInput, setManualWordInput] = useState('');
-  const [topicInput, setTopicInput] = useState('');
-  const [topicCountInput, setTopicCountInput] = useState(30);
-  const [revealedCardId, setRevealedCardId] = useState<string | null>(null);
-  const isBackVisible = Boolean(currentCard && revealedCardId === currentCard.id);
+    const handleGenerateTopic = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!topicInput.trim()) return;
+        await words.generateTopicDrafts(topicInput, topicCount);
+    };
 
-  const handleManualEnrich = (event: FormEvent) => {
-    event.preventDefault();
-    void onEnrichWord(manualWordInput);
-  };
+    const handleReviewRating = (rating: WordReviewRating) => {
+        if (!words.currentCard) return;
+        words.reviewWordCard(words.currentCard.id, rating);
+        setIsRevealed(false);
+    };
 
-  const handleGenerateTopic = (event: FormEvent) => {
-    event.preventDefault();
-    void onGenerateTopicDrafts(topicInput, topicCountInput);
-  };
+    const validTopicDraftsCount = words.topicDrafts.filter(
+        (d) => !d.isDuplicate && !d.isIncomplete
+    ).length;
 
-  return (
-    <div className="words-panel">
-      <section className="words-card words-settings">
-        <h3>Word Settings</h3>
-        <div className="words-settings-grid">
-          <label>
-            Target language
-            <input
-              value={settings.targetLanguage}
-              onChange={(event) => onSetTargetLanguage(event.target.value)}
-              placeholder="English"
-            />
-          </label>
-          <label>
-            Native language
-            <input
-              value={settings.nativeLanguage}
-              onChange={(event) => onSetNativeLanguage(event.target.value)}
-              placeholder="Polish"
-            />
-          </label>
-        </div>
-      </section>
-
-      <section className="words-card">
-        <h3>Add One Word</h3>
-        <form className="words-inline-form" onSubmit={handleManualEnrich}>
-          <input
-            value={manualWordInput}
-            onChange={(event) => setManualWordInput(event.target.value)}
-            placeholder="Type a word..."
-          />
-          <button className="btn-primary" type="submit" disabled={isEnrichingWord}>
-            {isEnrichingWord ? 'Generating...' : 'Generate Fields'}
-          </button>
-        </form>
-        {manualError ? <p className="words-error">{manualError}</p> : null}
-
-        {manualDraft ? (
-          <div className="words-draft-editor">
-            <h4>Manual Draft</h4>
-            <label>
-              Word
-              <input
-                value={manualDraft.word}
-                onChange={(event) => onUpdateManualDraft('word', event.target.value)}
-              />
-            </label>
-            <label>
-              Translation
-              <input
-                value={manualDraft.translation}
-                onChange={(event) => onUpdateManualDraft('translation', event.target.value)}
-              />
-            </label>
-            <label>
-              Definition
-              <textarea
-                rows={3}
-                value={manualDraft.definition}
-                onChange={(event) => onUpdateManualDraft('definition', event.target.value)}
-              />
-            </label>
-            <label>
-              Example
-              <textarea
-                rows={3}
-                value={manualDraft.example}
-                onChange={(event) => onUpdateManualDraft('example', event.target.value)}
-              />
-            </label>
-            {manualDraft.isDuplicate ? (
-              <p className="words-warning">This word is a duplicate and cannot be saved.</p>
-            ) : null}
-            {manualDraft.isIncomplete ? (
-              <p className="words-warning">Fill all fields before saving.</p>
-            ) : null}
-            <div className="words-action-row">
-              <button className="btn-primary" onClick={onSaveManualDraft} type="button">
-                Save Word
-              </button>
-              <button className="btn-secondary" onClick={onDiscardManualDraft} type="button">
-                Discard
-              </button>
-            </div>
-          </div>
-        ) : null}
-      </section>
-
-      <section className="words-card">
-        <h3>Generate Words From Topic</h3>
-        <form className="words-inline-form words-topic-form" onSubmit={handleGenerateTopic}>
-          <input
-            value={topicInput}
-            onChange={(event) => setTopicInput(event.target.value)}
-            placeholder="Topic (for example: travel)"
-          />
-          <input
-            className="words-count-input"
-            type="number"
-            min={1}
-            max={100}
-            value={topicCountInput}
-            onChange={(event) => setTopicCountInput(Number(event.target.value))}
-          />
-          <button className="btn-primary" type="submit" disabled={isGeneratingTopicWords}>
-            {isGeneratingTopicWords ? 'Generating...' : 'Generate'}
-          </button>
-        </form>
-        {topicError ? <p className="words-error">{topicError}</p> : null}
-
-        {topicDrafts.length > 0 ? (
-          <div className="words-preview">
-            <div className="words-preview-header">
-              <h4>Preview ({topicDrafts.length})</h4>
-              <span>{validDraftRows(topicDrafts)} valid rows</span>
-            </div>
-
-            <div className="words-preview-list">
-              {topicDrafts.map((row) => (
-                <div className="words-preview-row" key={row.id}>
-                  <input
-                    value={row.word}
-                    onChange={(event) => onUpdateTopicDraft(row.id, 'word', event.target.value)}
-                    placeholder="Word"
-                  />
-                  <input
-                    value={row.translation}
-                    onChange={(event) => onUpdateTopicDraft(row.id, 'translation', event.target.value)}
-                    placeholder="Translation"
-                  />
-                  <input
-                    value={row.definition}
-                    onChange={(event) => onUpdateTopicDraft(row.id, 'definition', event.target.value)}
-                    placeholder="Definition"
-                  />
-                  <input
-                    value={row.example}
-                    onChange={(event) => onUpdateTopicDraft(row.id, 'example', event.target.value)}
-                    placeholder="Example"
-                  />
-                  <button className="btn-secondary" type="button" onClick={() => onRemoveTopicDraft(row.id)}>
-                    Remove
-                  </button>
-                  {row.isDuplicate ? <span className="words-row-tag duplicate">Duplicate</span> : null}
-                  {row.isIncomplete ? <span className="words-row-tag incomplete">Incomplete</span> : null}
+    return (
+        <div className="words-panel">
+            {/* 1. Settings Section */}
+            <section className="words-section">
+                <h3>Settings</h3>
+                <div className="settings-grid">
+                    <div className="form-group">
+                        <label htmlFor="target-lang">Target Language</label>
+                        <input
+                            id="target-lang"
+                            type="text"
+                            placeholder="e.g. Spanish"
+                            value={words.settings.targetLanguage}
+                            onChange={(e) => words.setTargetLanguage(e.target.value)}
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="native-lang">Native Language</label>
+                        <input
+                            id="native-lang"
+                            type="text"
+                            placeholder="e.g. English"
+                            value={words.settings.nativeLanguage}
+                            onChange={(e) => words.setNativeLanguage(e.target.value)}
+                        />
+                    </div>
                 </div>
-              ))}
-            </div>
+            </section>
 
-            <div className="words-action-row">
-              <button className="btn-primary" type="button" onClick={onSaveTopicDrafts}>
-                Save Valid Rows
-              </button>
-              <button className="btn-secondary" type="button" onClick={onClearTopicDrafts}>
-                Clear Preview
-              </button>
-            </div>
-          </div>
-        ) : null}
-      </section>
+            {/* 2. Manual Add Section */}
+            <section className="words-section">
+                <h3>Add Word</h3>
+                <form onSubmit={handleManualEnrich} className="form-group">
+                    <label htmlFor="manual-word">Enrich word with AI</label>
+                    <div className="input-with-button">
+                        <input
+                            id="manual-word"
+                            type="text"
+                            placeholder="Enter a new word..."
+                            value={manualWordInput}
+                            onChange={(e) => setManualWordInput(e.target.value)}
+                            disabled={words.isEnrichingWord}
+                        />
+                        <button
+                            type="submit"
+                            className="btn-primary"
+                            disabled={words.isEnrichingWord || !manualWordInput.trim()}
+                        >
+                            {words.isEnrichingWord ? 'Enriching...' : 'Enrich with AI'}
+                        </button>
+                    </div>
+                </form>
 
-      <section className="words-card words-review">
-        <div className="words-review-header">
-          <h3>Review</h3>
-          <p>{dueCardsCount} due / {totalCardsCount} total</p>
-        </div>
+                {words.manualError && (
+                    <div className="error-message">{words.manualError}</div>
+                )}
 
-        {currentCard && currentNote ? (
-          <div className="words-review-card">
-            <h4>{currentNote.word}</h4>
-            {!isBackVisible ? (
-              <button
-                className="btn-primary"
-                type="button"
-                onClick={() => setRevealedCardId(currentCard.id)}
-              >
-                Show Answer
-              </button>
-            ) : (
-              <>
-                <div className="words-review-back">
-                  <ReactMarkdown>{currentCard.back}</ReactMarkdown>
-                </div>
-                <div className="words-rating-row">
-                  {ratingButtons.map((entry) => (
-                    <button
-                      key={entry.rating}
-                      className="srs-btn"
-                      type="button"
-                      onClick={() => {
-                        setRevealedCardId(null);
-                        onReviewWordCard(currentCard.id, entry.rating);
-                      }}
+                {words.manualDraft && (
+                    <div
+                        className={`draft-card ${words.manualDraft.isDuplicate ? 'duplicate' : ''} ${words.manualDraft.isIncomplete ? 'incomplete' : ''}`}
                     >
-                      {entry.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        ) : (
-          <p className="words-empty">No due word cards right now.</p>
-        )}
-      </section>
-    </div>
-  );
+                        {words.manualDraft.isDuplicate && (
+                            <div className="draft-warning">⚠️ This word already exists in your deck.</div>
+                        )}
+                        {words.manualDraft.isIncomplete && (
+                            <div className="draft-error">❌ Missing required fields.</div>
+                        )}
+
+                        <div className="draft-fields">
+                            <div className="form-group">
+                                <label>Word</label>
+                                <input
+                                    value={words.manualDraft.word}
+                                    onChange={(e) => words.updateManualDraft('word', e.target.value)}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Translation</label>
+                                <input
+                                    value={words.manualDraft.translation}
+                                    onChange={(e) => words.updateManualDraft('translation', e.target.value)}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Definition</label>
+                                <input
+                                    value={words.manualDraft.definition}
+                                    onChange={(e) => words.updateManualDraft('definition', e.target.value)}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Example</label>
+                                <input
+                                    value={words.manualDraft.example}
+                                    onChange={(e) => words.updateManualDraft('example', e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <div className="draft-actions">
+                            <button
+                                type="button"
+                                className="btn-secondary"
+                                onClick={words.discardManualDraft}
+                            >
+                                Discard
+                            </button>
+                            <button
+                                type="button"
+                                className="btn-primary"
+                                onClick={words.saveManualDraft}
+                                disabled={words.manualDraft.isDuplicate || words.manualDraft.isIncomplete}
+                            >
+                                Save Word
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </section>
+
+            {/* 3. Topic Generator Section */}
+            <section className="words-section">
+                <h3>Topic Generator</h3>
+                <form onSubmit={handleGenerateTopic} className="form-group">
+                    <label htmlFor="topic-input">Generate words with AI from a topic</label>
+                    <div className="input-with-button">
+                        <input
+                            id="topic-input"
+                            type="text"
+                            placeholder="e.g. At the restaurant"
+                            value={topicInput}
+                            onChange={(e) => setTopicInput(e.target.value)}
+                            disabled={words.isGeneratingTopicWords}
+                            style={{ flex: 2 }}
+                        />
+                        <input
+                            type="number"
+                            min="1"
+                            max="100"
+                            value={topicCount}
+                            onChange={(e) => setTopicCount(Number(e.target.value))}
+                            disabled={words.isGeneratingTopicWords}
+                            style={{ width: '80px', flex: 'none' }}
+                        />
+                        <button
+                            type="submit"
+                            className="btn-primary"
+                            disabled={words.isGeneratingTopicWords || !topicInput.trim()}
+                        >
+                            {words.isGeneratingTopicWords ? 'Generating...' : 'Generate with AI'}
+                        </button>
+                    </div>
+                </form>
+
+                {words.topicError && (
+                    <div className="error-message">{words.topicError}</div>
+                )}
+
+                {words.topicDrafts.length > 0 && (
+                    <div className="topic-drafts-list">
+                        <h4>Generated Words ({words.topicDrafts.length})</h4>
+                        {words.topicDrafts.map((draft) => (
+                            <div
+                                key={draft.id}
+                                className={`draft-card ${draft.isDuplicate ? 'duplicate' : ''} ${draft.isIncomplete ? 'incomplete' : ''}`}
+                            >
+                                <div className="topic-draft-header">
+                                    {draft.isDuplicate && (
+                                        <span className="draft-warning" style={{ margin: 0 }}>⚠️ Duplicate</span>
+                                    )}
+                                    {draft.isIncomplete && (
+                                        <span className="draft-error" style={{ margin: 0 }}>❌ Incomplete</span>
+                                    )}
+                                    <button
+                                        type="button"
+                                        className="btn-icon"
+                                        onClick={() => words.removeTopicDraft(draft.id)}
+                                        title="Remove word"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                                <div className="settings-grid">
+                                    <div className="form-group">
+                                        <label>Word</label>
+                                        <input
+                                            value={draft.word}
+                                            onChange={(e) => words.updateTopicDraft(draft.id, 'word', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Translation</label>
+                                        <input
+                                            value={draft.translation}
+                                            onChange={(e) => words.updateTopicDraft(draft.id, 'translation', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="settings-grid" style={{ marginTop: '12px' }}>
+                                    <div className="form-group">
+                                        <label>Definition</label>
+                                        <input
+                                            value={draft.definition}
+                                            onChange={(e) => words.updateTopicDraft(draft.id, 'definition', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Example</label>
+                                        <input
+                                            value={draft.example}
+                                            onChange={(e) => words.updateTopicDraft(draft.id, 'example', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+
+                        <div className="topic-actions">
+                            <button
+                                type="button"
+                                className="btn-secondary btn-danger"
+                                onClick={words.clearTopicDrafts}
+                            >
+                                Clear All
+                            </button>
+                            <button
+                                type="button"
+                                className="btn-primary"
+                                onClick={() => {
+                                    words.saveTopicDrafts();
+                                    setTopicInput('');
+                                }}
+                                disabled={validTopicDraftsCount === 0}
+                            >
+                                Save {validTopicDraftsCount} Valid Words
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </section>
+
+            {/* 4. Review Section */}
+            <section className="words-section">
+                <h3>Review ({words.dueCardsCount} due)</h3>
+                {!words.currentCard || !words.currentNote ? (
+                    <div className="no-cards">
+                        <p>You're all caught up! No words to review right now.</p>
+                    </div>
+                ) : (
+                    <div className="review-card-container">
+                        <div className="review-card">
+                            {words.currentNote.topic && (
+                                <div className="review-topic">{words.currentNote.topic}</div>
+                            )}
+                            <h2 className="review-word">{words.currentNote.word}</h2>
+
+                            {!isRevealed ? (
+                                <button
+                                    type="button"
+                                    className="btn-primary"
+                                    onClick={() => setIsRevealed(true)}
+                                    style={{ marginTop: '24px' }}
+                                >
+                                    Reveal Answer
+                                </button>
+                            ) : (
+                                <div className="review-answer">
+                                    <p className="review-translation">{words.currentNote.translation}</p>
+                                    <p className="review-definition">{words.currentNote.definition}</p>
+                                    <p className="review-example">"{words.currentNote.example}"</p>
+
+                                    <div style={{ marginTop: '24px' }}>
+                                        <p style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                            How well did you know this?
+                                        </p>
+                                        <div className="rating-buttons">
+                                            {[0, 1, 2, 3, 4, 5].map((rating) => (
+                                                <button
+                                                    key={rating}
+                                                    className={`btn-rating rating-${rating}`}
+                                                    onClick={() => handleReviewRating(rating as WordReviewRating)}
+                                                >
+                                                    <span className="rating-score">{rating}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </section>
+        </div>
+    );
 }

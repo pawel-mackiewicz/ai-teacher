@@ -28,7 +28,7 @@ import type { WordCard, WordNote, WordSettings } from '../types/app';
 import { getErrorMessage } from '../utils/error';
 import { createId } from '../utils/id';
 
-export type WordReviewRating = 0 | 3 | 4 | 5;
+export type WordReviewRating = 0 | 1 | 2 | 3 | 4 | 5;
 
 export interface WordDraftEntry {
   id: string;

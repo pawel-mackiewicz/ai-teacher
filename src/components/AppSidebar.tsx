@@ -7,12 +7,11 @@ import { SystemLogsButton } from '../LogsViewer';
 import type { Conversation } from '../types/app';
 import './AppSidebar.css';
 
-export type AppView = 'chat' | 'flashcards' | 'words';
-
 interface AppSidebarProps {
-  activeView: AppView;
-  dueFlashcardsCount: number;
-  dueWordsCount: number;
+  isFlashcardsView: boolean;
+  isWordsView: boolean;
+  dueCardsCount: number;
+  wordsDueCardsCount: number;
   sortedConversations: Conversation[];
   activeConversationId: string;
   isLoading: boolean;
@@ -24,9 +23,10 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({
-  activeView,
-  dueFlashcardsCount,
-  dueWordsCount,
+  isFlashcardsView,
+  isWordsView,
+  dueCardsCount,
+  wordsDueCardsCount,
   sortedConversations,
   activeConversationId,
   isLoading,
@@ -54,17 +54,17 @@ export function AppSidebar({
       </div>
 
       <button
-        className={`sidebar-menu-btn ${activeView === 'flashcards' ? 'active' : ''}`}
+        className={`sidebar-menu-btn ${isFlashcardsView ? 'active' : ''}`}
         onClick={onOpenFlashcards}
       >
-        Flashcards ({dueFlashcardsCount} due)
+        Flashcards ({dueCardsCount} due)
       </button>
 
       <button
-        className={`sidebar-menu-btn ${activeView === 'words' ? 'active' : ''}`}
+        className={`sidebar-menu-btn ${isWordsView ? 'active' : ''}`}
         onClick={onOpenWords}
       >
-        Words ({dueWordsCount} due)
+        Words ({wordsDueCardsCount} due)
       </button>
 
       <SystemLogsButton />
@@ -84,7 +84,7 @@ export function AppSidebar({
         {sortedConversations.map((conversation) => (
           <div
             key={conversation.id}
-            className={`conversation-item ${conversation.id === activeConversationId && activeView === 'chat' ? 'active' : ''}`}
+            className={`conversation-item ${conversation.id === activeConversationId && !isFlashcardsView && !isWordsView ? 'active' : ''}`}
             onClick={() => {
               if (isLoading) return;
               onSelectConversation(conversation.id);
