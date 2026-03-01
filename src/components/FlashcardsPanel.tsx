@@ -88,40 +88,49 @@ export function FlashcardsPanel({
 
             {pendingEvaluation ? (
               <div className="flashcard-feedback">
-                <hr />
-                <div className="flashcard-score-row">
-                  <h3>Evaluation</h3>
-                  <span className={`flashcard-score-badge ${SCORE_META[pendingEvaluation.score].toneClassName}`}>
-                    {SCORE_META[pendingEvaluation.score].title}
-                  </span>
-                </div>
-
-                <div className="flashcard-feedback-block">
-                  <h3>Your Answer</h3>
-                  <div className="prose">
-                    <ReactMarkdown>{pendingEvaluation.userAnswer}</ReactMarkdown>
+                <div className={`flashcard-score-banner ${SCORE_META[pendingEvaluation.score].toneClassName}`}>
+                  <div className="flashcard-score-content">
+                    <h3>Evaluation Result</h3>
+                    <span className="flashcard-score-badge">
+                      {SCORE_META[pendingEvaluation.score].title}
+                    </span>
                   </div>
                 </div>
 
-                <div className="flashcard-feedback-block">
-                  <h3>Reference Answer</h3>
-                  <div className="prose">
-                    <ReactMarkdown>{currentCard.back}</ReactMarkdown>
+                <div className="flashcard-feedback-layout">
+                  <div className="flashcard-feedback-side">
+                    <div className="flashcard-feedback-block user-answer-block">
+                      <h3>Your Answer</h3>
+                      <div className="prose">
+                        <ReactMarkdown>{pendingEvaluation.userAnswer}</ReactMarkdown>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flashcard-feedback-side">
+                    <div className="flashcard-feedback-block reference-block">
+                      <h3>Reference Answer</h3>
+                      <div className="prose">
+                        <ReactMarkdown>{currentCard.back}</ReactMarkdown>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flashcard-feedback-block">
+                <div className="flashcard-feedback-block argumentation-block">
                   <h3>Argumentation</h3>
                   <div className="prose">
                     <ReactMarkdown>{pendingEvaluation.argumentation}</ReactMarkdown>
                   </div>
                 </div>
 
-                <div className="flashcard-feedback-block">
+                <div className="flashcard-feedback-block tips-block">
                   <h3>Tips</h3>
                   <ul className="flashcard-tips-list">
                     {pendingEvaluation.tips.map((tip, index) => (
-                      <li key={`${pendingEvaluation.cardId}-tip-${index}`}>{tip}</li>
+                      <li key={`${pendingEvaluation.cardId}-tip-${index}`}>
+                        <span className="tip-icon">💡</span>
+                        <span className="tip-text">{tip}</span>
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -154,7 +163,7 @@ export function FlashcardsPanel({
                           type="submit"
                           disabled={!canSubmitCorrection}
                         >
-                          Submit Correction
+                          Submit Correction <small>(Ctrl+Enter)</small>
                         </button>
                       </form>
                     )}
@@ -191,15 +200,17 @@ export function FlashcardsPanel({
                   />
                   <div className="flashcard-submit-row">
                     <button
-                      className="btn-primary"
+                      className={`btn-primary ${isEvaluatingAnswer ? 'is-loading' : ''}`}
                       type="submit"
                       disabled={!canSubmitAnswer}
                     >
-                      {isEvaluatingAnswer
-                        ? 'Evaluating...'
-                        : evaluationError
-                          ? 'Retry Evaluation'
-                          : 'Evaluate My Answer'}
+                      {isEvaluatingAnswer ? (
+                        <>Evaluating<span className="loading-dots">...</span></>
+                      ) : evaluationError ? (
+                        'Retry Evaluation'
+                      ) : (
+                        <>Evaluate My Answer <small>(Ctrl+Enter)</small></>
+                      )}
                     </button>
                   </div>
                 </form>
@@ -209,25 +220,29 @@ export function FlashcardsPanel({
                     <p>{evaluationError}</p>
                     <div className="srs-controls">
                       <p>LLM evaluation failed. You can still rate manually.</p>
-                      <div className="srs-buttons">
-                        <button className="srs-btn srs-btn-1" onClick={() => onReviewFlashcard(currentCard.id, 0)}>
-                          Blackout <small>Reset</small>
-                        </button>
-                        <button className="srs-btn srs-btn-2" onClick={() => onReviewFlashcard(currentCard.id, 1)}>
-                          Wrong <small>Remembered</small>
-                        </button>
-                        <button className="srs-btn srs-btn-3" onClick={() => onReviewFlashcard(currentCard.id, 2)}>
-                          Wrong <small>Effortless</small>
-                        </button>
-                        <button className="srs-btn srs-btn-4" onClick={() => onReviewFlashcard(currentCard.id, 3)}>
-                          Hard <small>Struggled</small>
-                        </button>
-                        <button className="srs-btn srs-btn-5" onClick={() => onReviewFlashcard(currentCard.id, 4)}>
-                          Good <small>Standard</small>
-                        </button>
-                        <button className="srs-btn srs-btn-6" onClick={() => onReviewFlashcard(currentCard.id, 5)}>
-                          Easy <small>Perfect</small>
-                        </button>
+                      <div className="srs-buttons-group">
+                        <div className="srs-fail-zone">
+                          <button className="srs-btn srs-btn-1" onClick={() => onReviewFlashcard(currentCard.id, 0)}>
+                            Blackout <span>(Reset)</span>
+                          </button>
+                          <button className="srs-btn srs-btn-2" onClick={() => onReviewFlashcard(currentCard.id, 1)}>
+                            Wrong <span>(Remembered)</span>
+                          </button>
+                          <button className="srs-btn srs-btn-3" onClick={() => onReviewFlashcard(currentCard.id, 2)}>
+                            Wrong <span>(Effortless)</span>
+                          </button>
+                        </div>
+                        <div className="srs-pass-zone">
+                          <button className="srs-btn srs-btn-4" onClick={() => onReviewFlashcard(currentCard.id, 3)}>
+                            Hard <span>(Struggled)</span>
+                          </button>
+                          <button className="srs-btn srs-btn-5" onClick={() => onReviewFlashcard(currentCard.id, 4)}>
+                            Good <span>(Standard)</span>
+                          </button>
+                          <button className="srs-btn srs-btn-6" onClick={() => onReviewFlashcard(currentCard.id, 5)}>
+                            Easy <span>(Perfect)</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
