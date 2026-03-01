@@ -9,10 +9,14 @@ vi.mock('./logger', () => ({
 }));
 
 import {
+  describeWords,
+  enrichWordWithLLM,
   evaluateFlashcardAnswer,
+  generateTopicWords,
   initializeAI,
   sendMessageToAI,
   setActiveModel,
+  translateWords,
 } from './ai-service';
 
 const createAbortablePendingFetch = () =>
@@ -330,5 +334,103 @@ describe('evaluateFlashcardAnswer', () => {
       argumentation: 'Correct answer.',
       tips: ['Stay concise.'],
     });
+  });
+});
+
+describe('word generation APIs', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    initializeAI('secret-key');
+    setActiveModel('gemini-2.5-flash');
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('parses topic words result', async () => {
+    const wordsJson = JSON.stringify({
+      words: ['travel', 'ticket', 'airport'],
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(createGenerateContentResponse(wordsJson)),
+    );
+
+    await expect(generateTopicWords('travel', 3, 'English')).resolves.toEqual([
+      'travel',
+      'ticket',
+      'airport',
+    ]);
+  });
+
+  it('parses translations keyed by normalized word', async () => {
+    const translationsJson = JSON.stringify({
+      translations: [
+        { word: 'travel', translation: 'podroz' },
+        { word: 'ticket', translation: 'bilet' },
+      ],
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(createGenerateContentResponse(translationsJson)),
+    );
+
+    await expect(translateWords(['travel', 'ticket'], 'English', 'Polish')).resolves.toEqual({
+      travel: 'podroz',
+      ticket: 'bilet',
+    });
+  });
+
+  it('parses descriptions with required definition and example', async () => {
+    const descriptionsJson = JSON.stringify({
+      descriptions: [
+        {
+          word: 'travel',
+          definition: 'To go from one place to another.',
+          example: 'I travel to work by train.',
+        },
+      ],
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(createGenerateContentResponse(descriptionsJson)),
+    );
+
+    await expect(describeWords(['travel'], 'English')).resolves.toEqual({
+      travel: {
+        definition: 'To go from one place to another.',
+        example: 'I travel to work by train.',
+      },
+    });
+  });
+
+  it('enriches a single word by combining translation and description calls', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(createGenerateContentResponse(JSON.stringify({
+        translations: [{ word: 'travel', translation: 'podroz' }],
+      })))
+      .mockResolvedValueOnce(createGenerateContentResponse(JSON.stringify({
+        descriptions: [
+          {
+            word: 'travel',
+            definition: 'To go from one place to another.',
+            example: 'I travel often.',
+          },
+        ],
+      })));
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(enrichWordWithLLM('travel', 'English', 'Polish')).resolves.toEqual({
+      word: 'travel',
+      translation: 'podroz',
+      definition: 'To go from one place to another.',
+      example: 'I travel often.',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

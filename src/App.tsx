@@ -1,13 +1,15 @@
-import type { FormEvent, MouseEvent } from 'react';
+import { useState, type FormEvent, type MouseEvent } from 'react';
 import { AppSidebar } from './components/AppSidebar';
 import { ChatPanel } from './components/ChatPanel';
 import { FlashcardsPanel } from './components/FlashcardsPanel';
 import { MainHeader } from './components/MainHeader';
 import { SetupScreen } from './components/SetupScreen';
+import { WordsPanel } from './components/WordsPanel';
 import { useAiSetup } from './hooks/useAiSetup';
 import { useChat } from './hooks/useChat';
 import { useConversations } from './hooks/useConversations';
 import { useFlashcards } from './hooks/useFlashcards';
+import { useWords } from './hooks/useWords';
 import './App.css';
 import { getErrorMessage } from './utils/error';
 
@@ -15,6 +17,8 @@ function App() {
   const aiSetup = useAiSetup();
   const conversations = useConversations();
   const flashcards = useFlashcards();
+  const words = useWords();
+  const [activeView, setActiveView] = useState<'chat' | 'flashcards' | 'words'>('chat');
   const chat = useChat({
     activeConversation: conversations.activeConversation,
     setConversations: conversations.setConversations,
@@ -31,6 +35,7 @@ function App() {
     conversations.createNewConversation();
     chat.setInputValue('');
     flashcards.setIsFlashcardsView(false);
+    setActiveView('chat');
   };
 
   const handleDeleteConversation = (e: MouseEvent<HTMLButtonElement>, id: string) => {
@@ -49,11 +54,13 @@ function App() {
 
     conversations.selectConversation(conversationId);
     flashcards.setIsFlashcardsView(false);
+    setActiveView('chat');
   };
 
   const handleCreateFlashcards = async () => {
     try {
       await flashcards.generateForConversation(conversations.activeConversation);
+      setActiveView('flashcards');
     } catch (error) {
       alert(getErrorMessage(error));
     }
@@ -100,12 +107,20 @@ function App() {
   return (
     <div className="app-container">
       <AppSidebar
-        isFlashcardsView={flashcards.isFlashcardsView}
-        dueCardsCount={flashcards.dueCardsCount}
+        activeView={activeView}
+        dueFlashcardsCount={flashcards.dueCardsCount}
+        dueWordsCount={words.dueCardsCount}
         sortedConversations={conversations.sortedConversations}
         activeConversationId={conversations.activeConversationId}
         isLoading={chat.isLoading}
-        onOpenFlashcards={() => flashcards.setIsFlashcardsView(true)}
+        onOpenFlashcards={() => {
+          flashcards.setIsFlashcardsView(true);
+          setActiveView('flashcards');
+        }}
+        onOpenWords={() => {
+          flashcards.setIsFlashcardsView(false);
+          setActiveView('words');
+        }}
         onCreateConversation={handleCreateConversation}
         onSelectConversation={handleSelectConversation}
         onDeleteConversation={handleDeleteConversation}
@@ -113,7 +128,7 @@ function App() {
 
       <main className="app-main">
         <MainHeader
-          isFlashcardsView={flashcards.isFlashcardsView}
+          activeView={activeView}
           hasConversationMessages={Boolean(conversations.activeConversation?.messages.length)}
           isGeneratingFlashcards={flashcards.isGeneratingFlashcards}
           onCreateFlashcards={handleCreateFlashcards}
@@ -131,7 +146,7 @@ function App() {
           </div>
         ) : null}
 
-        {flashcards.isFlashcardsView ? (
+        {activeView === 'flashcards' ? (
           <FlashcardsPanel
             key={flashcards.currentCard?.id ?? 'flashcards-empty'}
             currentCard={flashcards.currentCard}
@@ -146,6 +161,32 @@ function App() {
             onSubmitCorrection={flashcards.submitCorrection}
             onAcceptEvaluationAndContinue={flashcards.acceptEvaluationAndContinue}
             onReviewFlashcard={flashcards.reviewFlashcard}
+          />
+        ) : activeView === 'words' ? (
+          <WordsPanel
+            settings={words.settings}
+            dueCardsCount={words.dueCardsCount}
+            totalCardsCount={words.totalCardsCount}
+            currentCard={words.currentCard}
+            currentNote={words.currentNote}
+            isEnrichingWord={words.isEnrichingWord}
+            isGeneratingTopicWords={words.isGeneratingTopicWords}
+            manualError={words.manualError}
+            topicError={words.topicError}
+            manualDraft={words.manualDraft}
+            topicDrafts={words.topicDrafts}
+            onSetTargetLanguage={words.setTargetLanguage}
+            onSetNativeLanguage={words.setNativeLanguage}
+            onEnrichWord={words.enrichWord}
+            onUpdateManualDraft={words.updateManualDraft}
+            onSaveManualDraft={words.saveManualDraft}
+            onDiscardManualDraft={words.discardManualDraft}
+            onGenerateTopicDrafts={words.generateTopicDrafts}
+            onUpdateTopicDraft={words.updateTopicDraft}
+            onRemoveTopicDraft={words.removeTopicDraft}
+            onSaveTopicDrafts={words.saveTopicDrafts}
+            onClearTopicDrafts={words.clearTopicDrafts}
+            onReviewWordCard={words.reviewWordCard}
           />
         ) : (
           <ChatPanel

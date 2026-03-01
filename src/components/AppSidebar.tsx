@@ -6,25 +6,32 @@ import {
 import { SystemLogsButton } from '../LogsViewer';
 import type { Conversation } from '../types/app';
 import './AppSidebar.css';
+
+export type AppView = 'chat' | 'flashcards' | 'words';
+
 interface AppSidebarProps {
-  isFlashcardsView: boolean;
-  dueCardsCount: number;
+  activeView: AppView;
+  dueFlashcardsCount: number;
+  dueWordsCount: number;
   sortedConversations: Conversation[];
   activeConversationId: string;
   isLoading: boolean;
   onOpenFlashcards: () => void;
+  onOpenWords: () => void;
   onCreateConversation: () => void;
   onSelectConversation: (conversationId: string) => void;
   onDeleteConversation: (e: MouseEvent<HTMLButtonElement>, conversationId: string) => void;
 }
 
 export function AppSidebar({
-  isFlashcardsView,
-  dueCardsCount,
+  activeView,
+  dueFlashcardsCount,
+  dueWordsCount,
   sortedConversations,
   activeConversationId,
   isLoading,
   onOpenFlashcards,
+  onOpenWords,
   onCreateConversation,
   onSelectConversation,
   onDeleteConversation,
@@ -47,10 +54,17 @@ export function AppSidebar({
       </div>
 
       <button
-        className={`sidebar-menu-btn ${isFlashcardsView ? 'active' : ''}`}
+        className={`sidebar-menu-btn ${activeView === 'flashcards' ? 'active' : ''}`}
         onClick={onOpenFlashcards}
       >
-        Flashcards ({dueCardsCount} due)
+        Flashcards ({dueFlashcardsCount} due)
+      </button>
+
+      <button
+        className={`sidebar-menu-btn ${activeView === 'words' ? 'active' : ''}`}
+        onClick={onOpenWords}
+      >
+        Words ({dueWordsCount} due)
       </button>
 
       <SystemLogsButton />
@@ -70,7 +84,7 @@ export function AppSidebar({
         {sortedConversations.map((conversation) => (
           <div
             key={conversation.id}
-            className={`conversation-item ${conversation.id === activeConversationId && !isFlashcardsView ? 'active' : ''}`}
+            className={`conversation-item ${conversation.id === activeConversationId && activeView === 'chat' ? 'active' : ''}`}
             onClick={() => {
               if (isLoading) return;
               onSelectConversation(conversation.id);

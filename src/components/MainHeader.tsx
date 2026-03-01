@@ -1,7 +1,8 @@
 import './MainHeader.css';
+import type { AppView } from './AppSidebar';
 
 interface MainHeaderProps {
-  isFlashcardsView: boolean;
+  activeView: AppView;
   hasConversationMessages: boolean;
   isGeneratingFlashcards: boolean;
   onCreateFlashcards: () => void;
@@ -23,7 +24,7 @@ const formatTimeoutRemaining = (timeoutRemainingMs: number | null): string => {
 };
 
 export function MainHeader({
-  isFlashcardsView,
+  activeView,
   hasConversationMessages,
   isGeneratingFlashcards,
   onCreateFlashcards,
@@ -37,11 +38,16 @@ export function MainHeader({
   const statusText = isLoading
     ? `Typing... (${formatTimeoutRemaining(timeoutRemainingMs)} to timeout)`
     : 'Ready';
+  const title = activeView === 'flashcards'
+    ? 'Flashcards Dashboard'
+    : activeView === 'words'
+      ? 'Words Dashboard'
+      : 'Master Craftsman';
 
   return (
     <header className="main-header">
-      <h2>{isFlashcardsView ? 'Flashcards Dashboard' : 'Master Craftsman'}</h2>
-      {!isFlashcardsView && hasConversationMessages ? (
+      <h2>{title}</h2>
+      {activeView === 'chat' && hasConversationMessages ? (
         <button
           className="btn-secondary"
           onClick={onCreateFlashcards}

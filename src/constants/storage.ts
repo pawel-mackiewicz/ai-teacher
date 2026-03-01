@@ -3,6 +3,9 @@ export const MODEL_STORAGE_KEY = 'aiTeacher.geminiModel';
 export const CONVERSATIONS_STORAGE_KEY = 'aiTeacher.conversations';
 export const ACTIVE_CONVERSATION_STORAGE_KEY = 'aiTeacher.activeConversationId';
 export const FLASHCARDS_STORAGE_KEY = 'aiTeacher.flashcards';
+export const WORD_NOTES_STORAGE_KEY = 'aiTeacher.wordNotes';
+export const WORD_CARDS_STORAGE_KEY = 'aiTeacher.wordCards';
+export const WORD_SETTINGS_STORAGE_KEY = 'aiTeacher.wordSettings';
 
 export const DEFAULT_CONVERSATION_TITLE = 'New conversation';
 export const MAX_CONVERSATION_TITLE_LENGTH = 52;

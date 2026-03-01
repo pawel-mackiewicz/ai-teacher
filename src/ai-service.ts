@@ -32,6 +32,18 @@ export interface FlashcardEvaluationResult {
   tips: string[];
 }
 
+export interface WordDescription {
+  definition: string;
+  example: string;
+}
+
+export interface WordEnrichment {
+  word: string;
+  translation: string;
+  definition: string;
+  example: string;
+}
+
 type ChatRequestErrorCategory =
   | 'first_token_timeout'
   | 'between_tokens_timeout'
@@ -153,6 +165,151 @@ const parseFlashcardEvaluationResult = (text: string): FlashcardEvaluationResult
     argumentation: payload.argumentation.trim(),
     tips: normalizedTips,
   };
+};
+
+const normalizeWordLookupKey = (value: string): string => {
+  const normalized = value.trim().replace(/\s+/g, ' ').toLowerCase();
+  return normalized.replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi, '');
+};
+
+const parseTopicWordsResult = (text: string): string[] => {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error('Failed to parse generated topic words JSON from AI response.');
+  }
+
+  const rawWords = Array.isArray(parsed)
+    ? parsed
+    : (
+      parsed &&
+      typeof parsed === 'object' &&
+      Array.isArray((parsed as { words?: unknown }).words)
+    )
+      ? (parsed as { words: unknown[] }).words
+      : null;
+
+  if (!rawWords) {
+    throw new Error('Topic words JSON schema is invalid.');
+  }
+
+  const seen = new Set<string>();
+  const words: string[] = [];
+
+  rawWords.forEach((entry) => {
+    if (typeof entry !== 'string') return;
+    const normalized = entry.trim().replace(/\s+/g, ' ');
+    const key = normalizeWordLookupKey(normalized);
+    if (!normalized || !key || seen.has(key)) return;
+    seen.add(key);
+    words.push(normalized);
+  });
+
+  if (words.length === 0) {
+    throw new Error('Topic words response did not include any valid words.');
+  }
+
+  return words;
+};
+
+const parseWordTranslationsResult = (text: string): Record<string, string> => {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error('Failed to parse word translations JSON from AI response.');
+  }
+
+  const normalized: Record<string, string> = {};
+  const consumePair = (word: unknown, translation: unknown) => {
+    if (typeof word !== 'string' || typeof translation !== 'string') return;
+    const key = normalizeWordLookupKey(word);
+    const normalizedTranslation = translation.trim();
+    if (!key || !normalizedTranslation) return;
+    normalized[key] = normalizedTranslation;
+  };
+
+  if (parsed && typeof parsed === 'object' && Array.isArray((parsed as { translations?: unknown }).translations)) {
+    ((parsed as { translations: unknown[] }).translations).forEach((entry) => {
+      if (!entry || typeof entry !== 'object') return;
+      const payload = entry as { word?: unknown; translation?: unknown };
+      consumePair(payload.word, payload.translation);
+    });
+  } else if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    Object.entries(parsed).forEach(([word, value]) => {
+      consumePair(word, value);
+    });
+  } else {
+    throw new Error('Word translations JSON schema is invalid.');
+  }
+
+  if (Object.keys(normalized).length === 0) {
+    throw new Error('Word translations response did not include valid entries.');
+  }
+
+  return normalized;
+};
+
+const parseWordDescriptionsResult = (text: string): Record<string, WordDescription> => {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error('Failed to parse word descriptions JSON from AI response.');
+  }
+
+  const normalized: Record<string, WordDescription> = {};
+  const consumeEntry = (word: unknown, description: unknown, example?: unknown) => {
+    if (typeof word !== 'string') return;
+    const key = normalizeWordLookupKey(word);
+    if (!key) return;
+
+    let definitionValue = '';
+    let exampleValue = '';
+
+    if (typeof description === 'string' && typeof example === 'string') {
+      definitionValue = description.trim();
+      exampleValue = example.trim();
+    } else if (description && typeof description === 'object') {
+      const payload = description as { definition?: unknown; example?: unknown };
+      if (typeof payload.definition === 'string') definitionValue = payload.definition.trim();
+      if (typeof payload.example === 'string') exampleValue = payload.example.trim();
+    }
+
+    if (!definitionValue || !exampleValue) return;
+    normalized[key] = {
+      definition: definitionValue,
+      example: exampleValue,
+    };
+  };
+
+  if (parsed && typeof parsed === 'object' && Array.isArray((parsed as { descriptions?: unknown }).descriptions)) {
+    ((parsed as { descriptions: unknown[] }).descriptions).forEach((entry) => {
+      if (!entry || typeof entry !== 'object') return;
+      const payload = entry as {
+        word?: unknown;
+        definition?: unknown;
+        example?: unknown;
+      };
+      consumeEntry(payload.word, payload.definition, payload.example);
+    });
+  } else if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    Object.entries(parsed).forEach(([word, value]) => {
+      consumeEntry(word, value);
+    });
+  } else {
+    throw new Error('Word descriptions JSON schema is invalid.');
+  }
+
+  if (Object.keys(normalized).length === 0) {
+    throw new Error('Word descriptions response did not include valid entries.');
+  }
+
+  return normalized;
 };
 
 const toGeminiRole = (role: ChatMessage['role']): 'user' | 'model' => {
@@ -648,4 +805,211 @@ JSON Format:
     console.error("Failed to parse flashcards:", text, err);
     throw new Error('Failed to parse flashcards from AI response.');
   }
+};
+
+const requestJsonFromGemini = async (
+  prompt: string,
+  requestType: 'words_topic_generation' | 'words_translation' | 'words_description',
+  promptLogLabel: string,
+  responseLogLabel: string,
+  maxOutputTokens: number = 8192,
+): Promise<string> => {
+  if (!activeApiKey) {
+    throw new Error('AI not initialized.');
+  }
+
+  const payload = {
+    systemInstruction: {
+      parts: [{ text: 'You are an expert language tutor. Output valid JSON ONLY.' }],
+    },
+    contents: createRequestContents([], prompt),
+    generationConfig: {
+      maxOutputTokens,
+      responseMimeType: 'application/json',
+    },
+  };
+
+  addLog('llm_prompt', `${promptLogLabel} using ${activeModelId}`, payload);
+
+  const endpoint =
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(activeModelId)}` +
+    `:generateContent?key=${encodeURIComponent(activeApiKey)}`;
+  const endpointForLogs = `models/${activeModelId}:generateContent`;
+  const requestStartedAt = Date.now();
+  let httpStatus: number | undefined;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    httpStatus = response.status;
+    if (!response.ok) {
+      throw new Error(`Gemini request failed with status ${response.status}.`);
+    }
+
+    const data = await response.json();
+    const text = parseChunkText(data);
+
+    if (!text) {
+      throw new Error('Gemini returned an empty response.');
+    }
+
+    addLog('llm_response', `${responseLogLabel} from ${activeModelId}`, { text });
+    return text;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Gemini words request failed unexpectedly.';
+    addLog('error', 'Gemini words request failed', {
+      requestType,
+      modelId: activeModelId,
+      endpoint: endpointForLogs,
+      errorMessage,
+      httpStatus,
+      durationMs: Date.now() - requestStartedAt,
+    });
+
+    if (error instanceof Error) throw error;
+    throw new Error('Gemini words request failed.');
+  }
+};
+
+export const generateTopicWords = async (
+  topic: string,
+  count: number,
+  targetLanguage: string,
+): Promise<string[]> => {
+  const requestedCount = Math.max(1, Math.min(100, Math.round(count)));
+  const normalizedTopic = topic.trim();
+  const normalizedTargetLanguage = targetLanguage.trim() || 'English';
+
+  if (!normalizedTopic) {
+    throw new Error('Topic is required to generate words.');
+  }
+
+  const prompt = `Generate exactly ${requestedCount} single-word vocabulary items related to topic "${normalizedTopic}" in ${normalizedTargetLanguage}.
+Rules:
+- Return only words in ${normalizedTargetLanguage}.
+- Avoid duplicates.
+- Avoid proper nouns where possible.
+- Prefer broadly useful vocabulary.
+You MUST respond with valid JSON only using this schema:
+{
+  "words": ["word1", "word2"]
+}`;
+
+  const text = await requestJsonFromGemini(
+    prompt,
+    'words_topic_generation',
+    'Generating topic words',
+    'Received topic words response',
+  );
+
+  return parseTopicWordsResult(text).slice(0, requestedCount);
+};
+
+export const translateWords = async (
+  words: string[],
+  targetLanguage: string,
+  nativeLanguage: string,
+): Promise<Record<string, string>> => {
+  const normalizedWords = words
+    .map((word) => word.trim())
+    .filter((word) => word.length > 0);
+
+  if (normalizedWords.length === 0) return {};
+
+  const normalizedTargetLanguage = targetLanguage.trim() || 'English';
+  const normalizedNativeLanguage = nativeLanguage.trim() || 'English';
+
+  const prompt = `Translate each word from ${normalizedTargetLanguage} to ${normalizedNativeLanguage}.
+Words:
+${JSON.stringify(normalizedWords)}
+You MUST respond with valid JSON only using this schema:
+{
+  "translations": [
+    { "word": "example", "translation": "translation" }
+  ]
+}
+Return every word exactly once.`;
+
+  const text = await requestJsonFromGemini(
+    prompt,
+    'words_translation',
+    'Generating word translations',
+    'Received word translations response',
+  );
+
+  return parseWordTranslationsResult(text);
+};
+
+export const describeWords = async (
+  words: string[],
+  targetLanguage: string,
+): Promise<Record<string, WordDescription>> => {
+  const normalizedWords = words
+    .map((word) => word.trim())
+    .filter((word) => word.length > 0);
+
+  if (normalizedWords.length === 0) return {};
+
+  const normalizedTargetLanguage = targetLanguage.trim() || 'English';
+
+  const prompt = `For each word below, write a clear learner-friendly definition and one natural example sentence in ${normalizedTargetLanguage}.
+Words:
+${JSON.stringify(normalizedWords)}
+You MUST respond with valid JSON only using this schema:
+{
+  "descriptions": [
+    {
+      "word": "example",
+      "definition": "definition in ${normalizedTargetLanguage}",
+      "example": "example sentence in ${normalizedTargetLanguage}"
+    }
+  ]
+}
+Return every word exactly once.`;
+
+  const text = await requestJsonFromGemini(
+    prompt,
+    'words_description',
+    'Generating word descriptions',
+    'Received word descriptions response',
+  );
+
+  return parseWordDescriptionsResult(text);
+};
+
+export const enrichWordWithLLM = async (
+  word: string,
+  targetLanguage: string,
+  nativeLanguage: string,
+): Promise<WordEnrichment> => {
+  const normalizedWord = word.trim().replace(/\s+/g, ' ');
+  if (!normalizedWord) {
+    throw new Error('Word is required for enrichment.');
+  }
+
+  const [translations, descriptions] = await Promise.all([
+    translateWords([normalizedWord], targetLanguage, nativeLanguage),
+    describeWords([normalizedWord], targetLanguage),
+  ]);
+
+  const lookupKey = normalizeWordLookupKey(normalizedWord);
+  const translation = translations[lookupKey];
+  const description = descriptions[lookupKey];
+
+  if (!translation || !description) {
+    throw new Error('Generated word enrichment is incomplete.');
+  }
+
+  return {
+    word: normalizedWord,
+    translation,
+    definition: description.definition,
+    example: description.example,
+  };
 };
