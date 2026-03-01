@@ -1,0 +1,120 @@
+/* === Messages === */
+.message {
+  display: flex;
+  gap: 1.25rem;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  animation: fadeIn var(--transition-normal);
+}
+
+.ai-message {
+  /* No special align for AI, follows general flow */
+}
+
+.user-message {
+  flex-direction: row-reverse;
+}
+
+.message-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.ai-message .message-avatar {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+}
+
+.user-message .message-avatar {
+  background-color: var(--accent-primary);
+  color: white;
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+.message-content {
+  flex: 1;
+}
+
+.ai-message .message-content {
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+
+.ai-message-error .message-content {
+  background-color: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: var(--radius-md);
+  color: #fecaca;
+  padding: 0.85rem 1rem;
+}
+
+.ai-message-error .message-content p {
+  color: #fecaca;
+}
+
+.user-message .message-content {
+  background-color: var(--bg-surface);
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  border-top-right-radius: 4px;
+  color: var(--text-primary);
+  border: 1px solid var(--border-medium);
+  flex: 0 1 auto;
+  max-width: calc(100% - 40px - 1.25rem);
+  /* Account for avatar and gap */
+}
+
+.user-message .message-content p {
+  color: var(--text-primary);
+}
+
+.user-message .message-content pre {
+  background-color: var(--bg-panel);
+  border-color: var(--border-strong);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: hidden;
+}
+
+.user-message .message-content code {
+  background-color: var(--bg-panel);
+}
+
+.user-message .message-content hr {
+  border-top-color: var(--border-strong);
+  margin: 0.75rem 0;
+}
+
+.message-retry-btn {
+  margin-top: 0.7rem;
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.55rem;
+  transition: all var(--transition-fast);
+  display: block;
+}
+
+.message-retry-btn:hover:not(:disabled) {
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+  background-color: rgba(99, 102, 241, 0.12);
+}
+
+.message-retry-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

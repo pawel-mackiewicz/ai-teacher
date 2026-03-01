@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, type FormEvent, type KeyboardEvent } from 'react';
 import type { Message } from '../types/app';
 import { ChatMessageItem } from './ChatMessageItem';
-
+import './ChatPanel.css';
 interface ChatPanelProps {
   messages: Message[];
   inputValue: string;

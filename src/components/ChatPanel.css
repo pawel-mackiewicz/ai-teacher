@@ -1,0 +1,58 @@
+/* === Input Area === */
+.input-area {
+  padding: 1.5rem 2rem;
+  background: linear-gradient(to top, var(--bg-main) 80%, transparent);
+}
+
+.input-form {
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl);
+  padding: 0.5rem;
+  box-shadow: var(--shadow-lg);
+  transition: all var(--transition-normal);
+}
+
+.input-form:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1px var(--accent-primary), var(--shadow-glow);
+}
+
+.input-form textarea {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  min-height: 44px;
+  max-height: 200px;
+  resize: none;
+  font-size: 1rem;
+}
+
+.btn-send {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--text-tertiary);
+  margin-left: 0.5rem;
+}
+
+.btn-send:hover {
+  color: white;
+  background-color: var(--bg-surface);
+}
+
+.input-form:has(textarea:not(:placeholder-shown)) .btn-send {
+  color: white;
+  background-color: var(--accent-primary);
+}
+
+.input-form:has(textarea:not(:placeholder-shown)) .btn-send:hover {
+  background-color: var(--accent-primary-hover);
+}

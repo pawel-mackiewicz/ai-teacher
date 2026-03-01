@@ -5,7 +5,7 @@ import type {
   FlashcardRating,
   PendingFlashcardEvaluation,
 } from '../hooks/useFlashcards';
-
+import './FlashcardsPanel.css';
 interface FlashcardsPanelProps {
   currentCard: Flashcard | null;
   flashcardsCount: number;

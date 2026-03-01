@@ -1,4 +1,5 @@
 import type { FormEvent } from 'react';
+import './SetupScreen.css';
 
 interface SetupScreenProps {
   apiKey: string;

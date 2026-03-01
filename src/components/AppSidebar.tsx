@@ -5,7 +5,7 @@ import {
 } from '../domain/conversations';
 import { SystemLogsButton } from '../LogsViewer';
 import type { Conversation } from '../types/app';
-
+import './AppSidebar.css';
 interface AppSidebarProps {
   isFlashcardsView: boolean;
   dueCardsCount: number;

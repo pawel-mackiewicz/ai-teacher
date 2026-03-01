@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Message } from '../types/app';
-
+import './ChatMessageItem.css';
 interface ChatMessageItemProps {
     message: Message;
     isGenerating: boolean;

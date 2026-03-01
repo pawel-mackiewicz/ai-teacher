@@ -1,3 +1,5 @@
+import './MainHeader.css';
+
 interface MainHeaderProps {
   isFlashcardsView: boolean;
   hasConversationMessages: boolean;
