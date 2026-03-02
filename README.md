@@ -1,3 +1,27 @@
+# What is this?
+
+I vibecoded it for myself for learning new things. Like CS and new words in Foreign Languages. I had it scattered across different apps and tools. So I decided to make one app for all of it. 
+
+I use it daily, maybe it would be useful for you too.
+
+It uses Bloom's Taxonomy (levels 2 to 5) for structuring the learning process.
+So it goes:
+
+2. understanding
+3. applying
+4. analyzing
+5. evaluating
+
+And then you can create flashcards with the help of AI from the given topic that you just learned.
+
+There is also section for learning words in different languages - just provide a word and AI will give you definition, examples and translations.  
+
+Flashcards and word learning uses Spaced Repetition System (SRS) with SuperMemo 2 algorithm.
+
+It uses Gemini API for the heavy lifting. So you need to provide your own API key.
+
+Enjoy.
+
 # How to start?
 
 ```bash
@@ -5,20 +29,14 @@ npm install
 npm run dev
 ```
 
-## Chat timeout config
+# How to use?
 
-You can tune Gemini chat stream timeouts with Vite env vars (values are in seconds):
+1. Open the app in your browser.
+2. Provide your Gemini API key.
+3. Start learning!
 
-- `VITE_CHAT_STREAM_FIRST_TOKEN_TIMEOUT_SECONDS` (default: `100`)
-- `VITE_CHAT_STREAM_BETWEEN_TOKENS_TIMEOUT_SECONDS` (default: `25`)
 
-Example:
-
-```bash
-cp .env.example .env
-```
-
-## Security warning (Gemini API key in browser storage)
+# Security warning (Gemini API key in browser storage)
 
 This app stores the Gemini API key in browser storage (`localStorage`) when you submit it in the setup screen.
 
@@ -28,3 +46,4 @@ This is convenient for local use, but it is **not secure storage**:
 - Anyone with access to your browser profile/session can potentially extract it.
 
 Use this browser-only mode for personal/local usage only. For production or shared environments, move API key handling to a backend service and never expose the key to client-side JavaScript.
+
