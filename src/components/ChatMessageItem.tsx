@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useLayoutEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Message } from '../types/app';
 import './ChatMessageItem.css';
+
 interface ChatMessageItemProps {
     message: Message;
     isGenerating: boolean;
@@ -19,6 +20,14 @@ export function ChatMessageItem({
 }: ChatMessageItemProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [editContent, setEditContent] = useState(message.content);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    useLayoutEffect(() => {
+        if (isEditing && textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+        }
+    }, [editContent, isEditing]);
 
     const isAiError =
         message.role === 'ai' && message.content.includes('Use **Retry from here** on your message to try again.');
@@ -38,33 +47,24 @@ export function ChatMessageItem({
     };
 
     return (
-        <div className={`message ${message.role === 'user' ? 'user-message' : 'ai-message'} ${isAiError ? 'ai-message-error' : ''}`}>
+        <div className={`message ${message.role === 'user' ? 'user-message' : 'ai-message'} ${isAiError ? 'ai-message-error' : ''} ${isEditing ? 'is-editing' : ''}`}>
             <div className={`message-avatar ${isGenerating ? 'animate-pulse' : ''}`}>{message.role === 'user' ? 'U' : '🧠'}</div>
             <div className="message-content prose">
                 {message.role === 'ai' ? (
                     <ReactMarkdown>{message.content}</ReactMarkdown>
                 ) : isEditing ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div className="message-edit-container">
                         <textarea
+                            ref={textareaRef}
                             value={editContent}
+                            className="message-edit-textarea"
                             onChange={(e) => setEditContent(e.target.value)}
-                            style={{
-                                width: '100%',
-                                minHeight: '60px',
-                                padding: '8px',
-                                borderRadius: '4px',
-                                backgroundColor: 'transparent',
-                                border: '1px solid currentColor',
-                                opacity: 0.8,
-                                color: 'inherit',
-                            }}
                             disabled={isLoading}
                         />
-                        <div style={{ display: 'flex', gap: '8px', marginTop: '0.7rem', justifyContent: 'flex-end' }}>
+                        <div className="message-actions">
                             <button
                                 type="button"
                                 className="message-retry-btn"
-                                style={{ margin: 0 }}
                                 onClick={handleEditSave}
                                 disabled={!editContent.trim() || isLoading}
                             >
@@ -73,7 +73,6 @@ export function ChatMessageItem({
                             <button
                                 type="button"
                                 className="message-retry-btn"
-                                style={{ margin: 0 }}
                                 onClick={handleEditCancel}
                                 disabled={isLoading}
                             >
@@ -84,11 +83,10 @@ export function ChatMessageItem({
                 ) : (
                     <>
                         <ReactMarkdown>{message.content}</ReactMarkdown>
-                        <div style={{ display: 'flex', gap: '8px', marginTop: '0.7rem', justifyContent: 'flex-end' }}>
+                        <div className="message-actions">
                             <button
                                 type="button"
                                 className="message-retry-btn"
-                                style={{ margin: 0 }}
                                 onClick={() => onRetryMessage(message.id)}
                                 disabled={isLoading}
                                 aria-label="Retry from this message"
@@ -99,7 +97,6 @@ export function ChatMessageItem({
                             <button
                                 type="button"
                                 className="message-retry-btn"
-                                style={{ margin: 0 }}
                                 onClick={handleEditStart}
                                 disabled={isLoading}
                                 aria-label="Edit this message"

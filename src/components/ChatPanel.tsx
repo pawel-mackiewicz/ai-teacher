@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useRef, type FormEvent, type KeyboardEvent 
 import type { Message } from '../types/app';
 import { ChatMessageItem } from './ChatMessageItem';
 import './ChatPanel.css';
+
+
 interface ChatPanelProps {
   messages: Message[];
   inputValue: string;
@@ -37,6 +39,7 @@ export function ChatPanel({
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [inputValue]);
+
 
   return (
     <>

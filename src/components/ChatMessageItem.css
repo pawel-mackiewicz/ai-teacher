@@ -8,12 +8,13 @@
   animation: fadeIn var(--transition-normal);
 }
 
-.ai-message {
-  /* No special align for AI, follows general flow */
-}
-
 .user-message {
   flex-direction: row-reverse;
+}
+
+.is-editing .message-content {
+  flex: 1 !important;
+  max-width: none !important;
 }
 
 .message-avatar {
@@ -94,8 +95,6 @@
 }
 
 .message-retry-btn {
-  margin-top: 0.7rem;
-  margin-left: auto;
   background: transparent;
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-sm);
@@ -105,7 +104,6 @@
   text-transform: uppercase;
   padding: 0.3rem 0.55rem;
   transition: all var(--transition-fast);
-  display: block;
 }
 
 .message-retry-btn:hover:not(:disabled) {
@@ -117,4 +115,42 @@
 .message-retry-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+/* === Message Layout & Actions === */
+.message-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+  justify-content: flex-end;
+}
+
+/* === Message Editing === */
+.message-edit-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.message-edit-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  resize: none;
+  overflow: hidden;
+  min-height: 60px;
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.message-edit-textarea:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-glow);
 }
