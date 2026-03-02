@@ -11,6 +11,7 @@ import { useConversations } from './hooks/useConversations';
 import { useFlashcards } from './hooks/useFlashcards';
 import { useWords } from './hooks/useWords';
 import { WordsPanel } from './components/WordsPanel';
+import { FlashcardsManagePanel } from './components/FlashcardsManagePanel';
 import './App.css';
 import { getErrorMessage } from './utils/error';
 
@@ -37,6 +38,7 @@ function App() {
     conversations.createNewConversation();
     chat.setInputValue('');
     flashcards.setIsFlashcardsView(false);
+    flashcards.setIsFlashcardsManageView(false);
     setIsWordsReviewView(false);
     setIsWordsManageView(false);
   };
@@ -57,6 +59,7 @@ function App() {
 
     conversations.selectConversation(conversationId);
     flashcards.setIsFlashcardsView(false);
+    flashcards.setIsFlashcardsManageView(false);
     setIsWordsReviewView(false);
     setIsWordsManageView(false);
   };
@@ -120,6 +123,7 @@ function App() {
         isLoading={chat.isLoading}
         onOpenFlashcards={() => {
           flashcards.setIsFlashcardsView(true);
+          flashcards.setIsFlashcardsManageView(false);
           setIsWordsReviewView(false);
           setIsWordsManageView(false);
         }}
@@ -127,11 +131,13 @@ function App() {
           setIsWordsReviewView(true);
           setIsWordsManageView(false);
           flashcards.setIsFlashcardsView(false);
+          flashcards.setIsFlashcardsManageView(false);
         }}
         onOpenWordsManage={() => {
           setIsWordsManageView(true);
           setIsWordsReviewView(false);
           flashcards.setIsFlashcardsView(false);
+          flashcards.setIsFlashcardsManageView(false);
         }}
         onCreateConversation={handleCreateConversation}
         onSelectConversation={handleSelectConversation}
@@ -141,6 +147,7 @@ function App() {
       <main className="app-main">
         <MainHeader
           isFlashcardsView={flashcards.isFlashcardsView}
+          isFlashcardsManageView={flashcards.isFlashcardsManageView}
           isWordsReviewView={isWordsReviewView}
           isWordsManageView={isWordsManageView}
           hasConversationMessages={Boolean(conversations.activeConversation?.messages.length)}
@@ -162,6 +169,8 @@ function App() {
 
         {isWordsReviewView || isWordsManageView ? (
           <WordsPanel words={words} viewMode={isWordsReviewView ? 'review' : 'manage'} />
+        ) : flashcards.isFlashcardsManageView ? (
+          <FlashcardsManagePanel flashcards={flashcards} />
         ) : flashcards.isFlashcardsView ? (
           <FlashcardsPanel
             key={flashcards.currentCard?.id ?? 'flashcards-empty'}

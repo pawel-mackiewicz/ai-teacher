@@ -15,6 +15,7 @@ import { addLog } from '../logger';
 import { calculateNextSRSDelay, type SRSData } from '../srs';
 import type { Conversation, Flashcard } from '../types/app';
 import { getErrorMessage } from '../utils/error';
+import { createId } from '../utils/id';
 
 export type FlashcardRating = 0 | 1 | 2 | 3 | 4 | 5;
 
@@ -26,10 +27,20 @@ export interface PendingFlashcardEvaluation {
   tips: string[];
 }
 
+export interface FlashcardDraft {
+  id: string;
+  front: string;
+  back: string;
+  topic: string;
+  conversationId: string;
+}
+
 export interface UseFlashcardsResult {
   flashcards: Flashcard[];
   isFlashcardsView: boolean;
   setIsFlashcardsView: Dispatch<SetStateAction<boolean>>;
+  isFlashcardsManageView: boolean;
+  setIsFlashcardsManageView: Dispatch<SetStateAction<boolean>>;
   isGeneratingFlashcards: boolean;
   currentCard: Flashcard | null;
   dueCardsCount: number;
@@ -39,7 +50,12 @@ export interface UseFlashcardsResult {
   requiresCorrection: boolean;
   isCorrectionSubmitted: boolean;
   correctedAnswer: string;
+  flashcardDrafts: FlashcardDraft[];
   generateForConversation: (conversation: Conversation | null) => Promise<void>;
+  updateFlashcardDraft: (id: string, field: 'front' | 'back', value: string) => void;
+  removeFlashcardDraft: (id: string) => void;
+  saveFlashcardDrafts: () => void;
+  discardFlashcardDrafts: () => void;
   submitAnswerForEvaluation: (card: Flashcard, userAnswer: string) => Promise<void>;
   submitCorrection: (answer: string) => void;
   acceptEvaluationAndContinue: () => void;
@@ -49,6 +65,7 @@ export interface UseFlashcardsResult {
 export const useFlashcards = (): UseFlashcardsResult => {
   const [flashcards, setFlashcards] = useState<Flashcard[]>(() => loadStoredFlashcards());
   const [isFlashcardsView, setIsFlashcardsView] = useState(false);
+  const [isFlashcardsManageView, setIsFlashcardsManageView] = useState(false);
   const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
   const [currentStudyCardId, setCurrentStudyCardId] = useState<string | null>(null);
   const [isEvaluatingAnswer, setIsEvaluatingAnswer] = useState(false);
@@ -56,6 +73,7 @@ export const useFlashcards = (): UseFlashcardsResult => {
   const [pendingEvaluation, setPendingEvaluation] = useState<PendingFlashcardEvaluation | null>(null);
   const [isCorrectionSubmitted, setIsCorrectionSubmitted] = useState(false);
   const [correctedAnswer, setCorrectedAnswer] = useState('');
+  const [flashcardDrafts, setFlashcardDrafts] = useState<FlashcardDraft[]>([]);
 
   const dueCards = flashcards.filter((card) => card.nextReviewDate <= Date.now());
   const currentCard = currentStudyCardId
@@ -95,16 +113,57 @@ export const useFlashcards = (): UseFlashcardsResult => {
       try {
         const topic = conversation.topic || conversation.title;
         const generated = await generateFlashcards(topic, conversation.messages);
-        const newCards = createFlashcardsFromGenerated(generated, topic, conversation.id);
 
-        setFlashcards((prev) => [...prev, ...newCards]);
-        setIsFlashcardsView(true);
+        const drafts: FlashcardDraft[] = generated.map((g) => ({
+          id: createId(),
+          front: g.front,
+          back: g.back,
+          topic,
+          conversationId: conversation.id,
+        }));
+
+        setFlashcardDrafts(drafts);
+        setIsFlashcardsManageView(true);
+        setIsFlashcardsView(false);
+        addLog('action', `Generated ${drafts.length} flashcard drafts`);
       } finally {
         setIsGeneratingFlashcards(false);
       }
     },
     [isGeneratingFlashcards],
   );
+
+  const updateFlashcardDraft = useCallback((id: string, field: 'front' | 'back', value: string) => {
+    setFlashcardDrafts((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, [field]: value } : d))
+    );
+  }, []);
+
+  const removeFlashcardDraft = useCallback((id: string) => {
+    setFlashcardDrafts((prev) => prev.filter((d) => d.id !== id));
+  }, []);
+
+  const saveFlashcardDrafts = useCallback(() => {
+    if (flashcardDrafts.length === 0) return;
+
+    const newCards = createFlashcardsFromGenerated(
+      flashcardDrafts.map(d => ({ front: d.front, back: d.back })),
+      flashcardDrafts[0].topic,
+      flashcardDrafts[0].conversationId
+    );
+
+    setFlashcards((prev) => [...prev, ...newCards]);
+    setFlashcardDrafts([]);
+    setIsFlashcardsManageView(false);
+    setIsFlashcardsView(true);
+    addLog('action', `Saved ${newCards.length} flashcards from drafts`);
+  }, [flashcardDrafts]);
+
+  const discardFlashcardDrafts = useCallback(() => {
+    setFlashcardDrafts([]);
+    setIsFlashcardsManageView(false);
+    addLog('action', 'Discarded flashcard drafts');
+  }, []);
 
   const applyReviewRating = useCallback((cardId: string, rating: FlashcardRating, source: 'manual' | 'llm') => {
     setFlashcards((prev) =>
@@ -199,6 +258,8 @@ export const useFlashcards = (): UseFlashcardsResult => {
     flashcards,
     isFlashcardsView,
     setIsFlashcardsView,
+    isFlashcardsManageView,
+    setIsFlashcardsManageView,
     isGeneratingFlashcards,
     currentCard,
     dueCardsCount: dueCards.length,
@@ -208,7 +269,12 @@ export const useFlashcards = (): UseFlashcardsResult => {
     requiresCorrection,
     isCorrectionSubmitted,
     correctedAnswer,
+    flashcardDrafts,
     generateForConversation,
+    updateFlashcardDraft,
+    removeFlashcardDraft,
+    saveFlashcardDrafts,
+    discardFlashcardDrafts,
     submitAnswerForEvaluation,
     submitCorrection,
     acceptEvaluationAndContinue,

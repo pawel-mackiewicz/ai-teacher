@@ -2,6 +2,7 @@ import './MainHeader.css';
 
 interface MainHeaderProps {
   isFlashcardsView: boolean;
+  isFlashcardsManageView: boolean;
   isWordsReviewView: boolean;
   isWordsManageView: boolean;
   hasConversationMessages: boolean;
@@ -26,6 +27,7 @@ const formatTimeoutRemaining = (timeoutRemainingMs: number | null): string => {
 
 export function MainHeader({
   isFlashcardsView,
+  isFlashcardsManageView,
   isWordsReviewView,
   isWordsManageView,
   hasConversationMessages,
@@ -44,8 +46,8 @@ export function MainHeader({
 
   return (
     <header className="main-header">
-      <h2>{isWordsReviewView ? 'Words Review Dashboard' : isWordsManageView ? 'Words Generator Dashboard' : isFlashcardsView ? 'Flashcards Dashboard' : 'Master Craftsman'}</h2>
-      {!isFlashcardsView && !isWordsReviewView && !isWordsManageView && hasConversationMessages ? (
+      <h2>{isWordsReviewView ? 'Words Review Dashboard' : isWordsManageView ? 'Words Generator Dashboard' : isFlashcardsManageView ? 'Flashcards Generator Dashboard' : isFlashcardsView ? 'Flashcards Dashboard' : 'Master Craftsman'}</h2>
+      {!isFlashcardsView && !isWordsReviewView && !isWordsManageView && !isFlashcardsManageView && hasConversationMessages ? (
         <button
           className="btn-secondary"
           onClick={onCreateFlashcards}
