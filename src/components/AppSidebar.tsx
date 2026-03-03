@@ -9,6 +9,7 @@ import './AppSidebar.css';
 
 interface AppSidebarProps {
   isFlashcardsView: boolean;
+  isFlashcardsManageView: boolean;
   isWordsReviewView: boolean;
   isWordsManageView: boolean;
   dueCardsCount: number;
@@ -17,6 +18,7 @@ interface AppSidebarProps {
   activeConversationId: string;
   isLoading: boolean;
   onOpenFlashcards: () => void;
+  onOpenFlashcardsManage: () => void;
   onOpenWordsReview: () => void;
   onOpenWordsManage: () => void;
   onCreateConversation: () => void;
@@ -26,6 +28,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({
   isFlashcardsView,
+  isFlashcardsManageView,
   isWordsReviewView,
   isWordsManageView,
   dueCardsCount,
@@ -34,6 +37,7 @@ export function AppSidebar({
   activeConversationId,
   isLoading,
   onOpenFlashcards,
+  onOpenFlashcardsManage,
   onOpenWordsReview,
   onOpenWordsManage,
   onCreateConversation,
@@ -62,6 +66,13 @@ export function AppSidebar({
         onClick={onOpenFlashcards}
       >
         Flashcards ({dueCardsCount} due)
+      </button>
+
+      <button
+        className={`sidebar-menu-btn ${isFlashcardsManageView ? 'active' : ''}`}
+        onClick={onOpenFlashcardsManage}
+      >
+        Flashcards Generator
       </button>
 
       <button

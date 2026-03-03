@@ -186,7 +186,7 @@ export const useFlashcards = (): UseFlashcardsResult => {
         });
 
         const syntheticConversationId = createTopicConversationId(normalizedTopic);
-        const drafts = annotateDrafts(generated.map((entry) => ({
+        const annotatedDrafts = annotateDrafts(generated.map((entry) => ({
           id: createId(),
           front: entry.front,
           back: entry.back,
@@ -194,10 +194,20 @@ export const useFlashcards = (): UseFlashcardsResult => {
           conversationId: syntheticConversationId,
         })));
 
-        setFlashcardDrafts(drafts);
+        const validDrafts = annotatedDrafts.filter((d) => !d.isDuplicate && !d.isIncomplete);
+
+        if (validDrafts.length === 0) {
+          setTopicGenerationError('All generated flashcards were duplicates or incomplete. Try different topic parameters.');
+          return;
+        }
+
+        setFlashcardDrafts((prev) => [...prev, ...validDrafts]);
         setIsFlashcardsManageView(true);
         setIsFlashcardsView(false);
-        addLog('action', `Generated ${drafts.length} topic flashcard drafts for "${normalizedTopic}"`);
+        addLog('action', `Generated ${validDrafts.length} valid topic flashcard drafts for "${normalizedTopic}"`);
+        if (validDrafts.length < annotatedDrafts.length) {
+          setTopicGenerationError(`Generated ${validDrafts.length} valid flashcards. ${annotatedDrafts.length - validDrafts.length} duplicate/incomplete drafts were discarded.`);
+        }
       } catch (error) {
         setTopicGenerationError(getErrorMessage(error));
       } finally {
@@ -219,12 +229,12 @@ export const useFlashcards = (): UseFlashcardsResult => {
       }
 
       const seed = updated.map((draft) => ({
-          id: draft.id,
-          front: draft.front,
-          back: draft.back,
-          topic: draft.topic,
-          conversationId: draft.conversationId,
-        }));
+        id: draft.id,
+        front: draft.front,
+        back: draft.back,
+        topic: draft.topic,
+        conversationId: draft.conversationId,
+      }));
 
       return annotateDrafts(seed);
     });
@@ -238,12 +248,12 @@ export const useFlashcards = (): UseFlashcardsResult => {
       }
 
       const seed = updated.map((draft) => ({
-          id: draft.id,
-          front: draft.front,
-          back: draft.back,
-          topic: draft.topic,
-          conversationId: draft.conversationId,
-        }));
+        id: draft.id,
+        front: draft.front,
+        back: draft.back,
+        topic: draft.topic,
+        conversationId: draft.conversationId,
+      }));
 
       return annotateDrafts(seed);
     });

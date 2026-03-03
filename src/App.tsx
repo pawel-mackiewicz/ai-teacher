@@ -114,6 +114,7 @@ function App() {
     <div className="app-container">
       <AppSidebar
         isFlashcardsView={flashcards.isFlashcardsView}
+        isFlashcardsManageView={flashcards.isFlashcardsManageView}
         isWordsReviewView={isWordsReviewView}
         isWordsManageView={isWordsManageView}
         dueCardsCount={flashcards.dueCardsCount}
@@ -124,6 +125,12 @@ function App() {
         onOpenFlashcards={() => {
           flashcards.setIsFlashcardsView(true);
           flashcards.setIsFlashcardsManageView(false);
+          setIsWordsReviewView(false);
+          setIsWordsManageView(false);
+        }}
+        onOpenFlashcardsManage={() => {
+          flashcards.setIsFlashcardsManageView(true);
+          flashcards.setIsFlashcardsView(false);
           setIsWordsReviewView(false);
           setIsWordsManageView(false);
         }}
