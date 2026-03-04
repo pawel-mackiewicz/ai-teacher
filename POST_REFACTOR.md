@@ -1,7 +1,7 @@
 # Post-Refactor Future Improvements
 
 ## High priority
-1. Remove unused dependencies after confirmation (`puppeteer`, `framer-motion`) and regenerate lockfile.
+1. ~~Remove unused dependencies after confirmation (`puppeteer`, `framer-motion`) and regenerate lockfile.~~ (Completed)
 2. Add integration tests for core app flows (bootstrap, send message streaming, flashcard generation/review, conversation delete fallback).
 3. Replace `alert(...)` error handling with a shared non-blocking toast/banner system.
 4. Add stronger runtime validation for localStorage payloads (schema-based parsing) before state hydration.

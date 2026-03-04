@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { type LogEntry, getLogs, clearLogs, LOGS_UPDATED_EVENT } from './logger';
+import './LogsViewer.css';
 import { X, Trash2, ChevronDown, ChevronRight, Activity, MessageSquare, Server, AlertCircle } from 'lucide-react';
 
 interface LogsViewerProps {
@@ -44,46 +45,46 @@ export const LogsViewer: React.FC<LogsViewerProps> = ({ onClose }) => {
     const getIcon = (type: LogEntry['type']) => {
         switch (type) {
             case 'action':
-                return <Activity className="w-5 h-5 text-blue-500" />;
+                return <Activity className="w-5 h-5 log-icon-action" />;
             case 'llm_prompt':
-                return <MessageSquare className="w-5 h-5 text-purple-500" />;
+                return <MessageSquare className="w-5 h-5 log-icon-prompt" />;
             case 'llm_response':
-                return <Server className="w-5 h-5 text-green-500" />;
+                return <Server className="w-5 h-5 log-icon-response" />;
             case 'error':
-                return <AlertCircle className="w-5 h-5 text-red-500" />;
+                return <AlertCircle className="w-5 h-5 log-icon-error" />;
         }
     };
 
     return (
         <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="logs-viewer-overlay"
             onClick={onClose}
         >
             <div
-                className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800"
+                className="logs-viewer-modal"
                 onClick={(e) => e.stopPropagation()}
             >
 
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                    <div className="flex items-center gap-2">
-                        <Activity className="w-5 h-5 text-indigo-500" />
-                        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">System Logs</h2>
-                        <span className="text-xs font-medium bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full">
+                <div className="logs-viewer-header">
+                    <div className="logs-viewer-header-title">
+                        <Activity className="w-5 h-5 log-icon-action" />
+                        <h2>System Logs</h2>
+                        <span className="logs-viewer-count">
                             {logs.length} entries
                         </span>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="logs-viewer-header-actions">
                         <button
                             onClick={handleClear}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+                            className="btn-clear-logs"
                         >
                             <Trash2 className="w-4 h-4" />
                             Clear
                         </button>
                         <button
                             onClick={onClose}
-                            className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-200 dark:hover:text-slate-300 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                            className="btn-close-logs"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -91,51 +92,48 @@ export const LogsViewer: React.FC<LogsViewerProps> = ({ onClose }) => {
                 </div>
 
                 {/* Logs List */}
-                <div className="flex-1 overflow-y-auto p-4 bg-slate-50 dark:bg-slate-950">
-                    <div className="space-y-3">
+                <div className="logs-viewer-content">
+                    <div className="logs-list">
                         {logs.length === 0 ? (
-                            <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-                                <Activity className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                            <div className="logs-empty">
+                                <Activity />
                                 <p>No logs recorded yet.</p>
                             </div>
                         ) : (
                             logs.map((log) => (
                                 <div
                                     key={log.id}
-                                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden shadow-sm"
+                                    className="log-entry"
                                 >
                                     <div
-                                        className="flex flex-col sm:flex-row sm:items-center p-3 gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                                        className="log-entry-summary"
                                         onClick={() => toggleExpand(log.id!)}
                                     >
-                                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                                            <div className="shrink-0 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-md">
+                                        <div className="log-entry-info">
+                                            <div className="log-entry-icon">
                                                 {getIcon(log.type)}
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-slate-800 dark:text-slate-200 break-words">
+                                            <div className="log-entry-text">
+                                                <p className="log-entry-message">
                                                     {log.message}
                                                 </p>
-                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-2">
-                                                    <span className="uppercase tracking-wider font-semibold text-[10px]">{log.type.replace('_', ' ')}</span>
+                                                <p className="log-entry-meta">
+                                                    <span className="log-entry-type">{log.type.replace('_', ' ')}</span>
                                                     <span>&bull;</span>
                                                     <span>{new Date(log.timestamp).toLocaleString()}</span>
                                                 </p>
                                             </div>
                                         </div>
                                         {log.details !== undefined && (
-                                            <div className="shrink-0 text-slate-400">
+                                            <div className="log-entry-toggle">
                                                 {expanded[log.id!] ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
                                             </div>
                                         )}
                                     </div>
 
                                     {expanded[log.id!] && log.details !== undefined && (
-                                        <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-4">
-                                            <pre
-                                                className="text-xs font-mono text-slate-700 dark:text-slate-300 w-full"
-                                                style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'break-word' }}
-                                            >
+                                        <div className="log-entry-details">
+                                            <pre>
                                                 {typeof log.details === 'object'
                                                     ? JSON.stringify(log.details, null, 2)
                                                     : String(log.details)}
