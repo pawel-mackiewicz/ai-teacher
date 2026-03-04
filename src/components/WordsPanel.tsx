@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react';
 import { useState, useRef, useEffect } from 'react';
 import type { UseWordsResult, WordReviewRating } from '../hooks/useWords';
+import { getNextReviewIntervalFormatted } from '../srs';
 import './WordsPanel.css';
 
 interface WordsPanelProps {
@@ -13,6 +14,27 @@ export function WordsPanel({ words, viewMode }: WordsPanelProps) {
     const [topicInput, setTopicInput] = useState('');
     const [topicCount, setTopicCount] = useState(10);
     const [isRevealed, setIsRevealed] = useState(false);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const toastTimeoutRef = useRef<number | null>(null);
+
+    const showToast = (message: string) => {
+        setToastMessage(message);
+        if (toastTimeoutRef.current) {
+            window.clearTimeout(toastTimeoutRef.current);
+        }
+        toastTimeoutRef.current = window.setTimeout(() => {
+            setToastMessage(null);
+        }, 1500);
+    };
+
+    // Clean up timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (toastTimeoutRef.current) {
+                window.clearTimeout(toastTimeoutRef.current);
+            }
+        };
+    }, []);
 
     const handleManualEnrich = async (e: FormEvent) => {
         e.preventDefault();
@@ -28,8 +50,10 @@ export function WordsPanel({ words, viewMode }: WordsPanelProps) {
 
     const handleReviewRating = (rating: WordReviewRating) => {
         if (!words.currentCard) return;
+        const intervalText = getNextReviewIntervalFormatted(rating, words.currentCard);
         words.reviewWordCard(words.currentCard.id, rating);
         setIsRevealed(false);
+        showToast(`Reviewed! Next review in ${intervalText}`);
     };
 
     const validTopicDraftsCount = words.topicDrafts.filter(
@@ -46,6 +70,12 @@ export function WordsPanel({ words, viewMode }: WordsPanelProps) {
 
     return (
         <div className="words-panel">
+            {toastMessage && (
+                <div className="srs-toast-notification">
+                    <span className="toast-icon">✨</span>
+                    <span className="toast-text">{toastMessage}</span>
+                </div>
+            )}
             <div className="words-panel-content">
                 {/* 1. Settings Section */}
                 {viewMode === 'manage' && (

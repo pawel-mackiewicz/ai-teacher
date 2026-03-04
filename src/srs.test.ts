@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateNextSRSDelay, type SRSData } from './srs';
+import { calculateNextSRSDelay, formatNextReviewInterval, type SRSData } from './srs';
 
 // SM-2 Algorithm mapping (6 buttons -> Qualities 0-5):
 // Button 1 (Blackout) -> Quality 0
@@ -109,5 +109,22 @@ describe('Strict SM-2 Algorithm', () => {
             const result = calculateNextSRSDelay(0, badCard); // q=0
             expect(result.easinessFactor).toBe(1.3);
         });
+    });
+});
+
+describe('formatNextReviewInterval', () => {
+    it('formats day intervals with full words', () => {
+        expect(formatNextReviewInterval(1)).toBe('1 day');
+        expect(formatNextReviewInterval(6)).toBe('6 days');
+    });
+
+    it('formats month intervals with full words', () => {
+        expect(formatNextReviewInterval(30)).toBe('1 month');
+        expect(formatNextReviewInterval(180)).toBe('6 months');
+    });
+
+    it('formats year intervals with full words', () => {
+        expect(formatNextReviewInterval(365)).toBe('1 year');
+        expect(formatNextReviewInterval(730)).toBe('2 years');
     });
 });

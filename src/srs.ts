@@ -36,3 +36,20 @@ export const calculateNextSRSDelay = (
 
     return { interval, repetition, easinessFactor, nextReviewDate };
 };
+
+export function formatNextReviewInterval(intervalInDays: number): string {
+    if (intervalInDays < 1) return '< 1 day';
+    if (intervalInDays === 1) return '1 day';
+    if (intervalInDays < 30) return `${intervalInDays} days`;
+    if (intervalInDays < 365) {
+        const months = Math.floor(intervalInDays / 30);
+        return `${months} month${months === 1 ? '' : 's'}`;
+    }
+    const years = +(intervalInDays / 365).toFixed(1);
+    return `${years} year${years === 1 ? '' : 's'}`;
+}
+
+export function getNextReviewIntervalFormatted(rating: 0 | 1 | 2 | 3 | 4 | 5, current: SRSData): string {
+    const next = calculateNextSRSDelay(rating, current);
+    return formatNextReviewInterval(next.interval);
+}

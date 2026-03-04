@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import confetti from 'canvas-confetti';
 import type { Flashcard } from '../types/app';
@@ -6,6 +6,7 @@ import type {
   FlashcardRating,
   PendingFlashcardEvaluation,
 } from '../hooks/useFlashcards';
+import { getNextReviewIntervalFormatted } from '../srs';
 import './FlashcardsPanel.css';
 interface FlashcardsPanelProps {
   currentCard: Flashcard | null;
@@ -47,8 +48,29 @@ export function FlashcardsPanel({
 }: FlashcardsPanelProps) {
   const [typedAnswer, setTypedAnswer] = useState('');
   const [correctionInput, setCorrectionInput] = useState('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimeoutRef = useRef<number | null>(null);
+
   const canSubmitAnswer = !isEvaluatingAnswer && typedAnswer.trim().length > 0;
   const canSubmitCorrection = correctionInput.trim().length > 0;
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    if (toastTimeoutRef.current) {
+      window.clearTimeout(toastTimeoutRef.current);
+    }
+    toastTimeoutRef.current = window.setTimeout(() => {
+      setToastMessage(null);
+    }, 1500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        window.clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (pendingEvaluation?.score === 5) {
@@ -104,8 +126,34 @@ export function FlashcardsPanel({
     onSubmitCorrection(correctionInput);
   };
 
+  const handleAcceptEvaluationAndContinue = () => {
+    if (currentCard && pendingEvaluation) {
+      const intervalText = getNextReviewIntervalFormatted(pendingEvaluation.score, currentCard);
+      showToast(`Reviewed! Next review in ${intervalText}`);
+    }
+    onAcceptEvaluationAndContinue();
+  };
+
+  const handleReviewFlashcard = (cardId: string, rating: FlashcardRating) => {
+    if (currentCard) {
+      const intervalText = getNextReviewIntervalFormatted(rating, currentCard);
+      showToast(`Reviewed! Next review in ${intervalText}`);
+    }
+    onReviewFlashcard(cardId, rating);
+  };
+
+  const nextReviewIntervalText = currentCard && pendingEvaluation
+    ? getNextReviewIntervalFormatted(pendingEvaluation.score, currentCard)
+    : null;
+
   return (
     <div className="flashcards-area">
+      {toastMessage && (
+        <div className="srs-toast-notification">
+          <span className="toast-icon">✨</span>
+          <span className="toast-text">{toastMessage}</span>
+        </div>
+      )}
       {currentCard ? (
         <div className="flashcard-study-container">
           <div className="flashcard">
@@ -126,6 +174,11 @@ export function FlashcardsPanel({
                     </span>
                   </div>
                 </div>
+                {nextReviewIntervalText ? (
+                  <div className="flashcard-next-review-info" role="status" aria-live="polite">
+                    Next review in <strong>{nextReviewIntervalText}</strong>
+                  </div>
+                ) : null}
 
                 <div className="flashcard-feedback-layout">
                   <div className="flashcard-feedback-side">
@@ -208,7 +261,7 @@ export function FlashcardsPanel({
                   ) : null}
                   <button
                     className="btn-primary"
-                    onClick={onAcceptEvaluationAndContinue}
+                    onClick={handleAcceptEvaluationAndContinue}
                     disabled={requiresCorrection && !isCorrectionSubmitted}
                   >
                     Next Card
@@ -252,24 +305,24 @@ export function FlashcardsPanel({
                       <p>LLM evaluation failed. You can still rate manually.</p>
                       <div className="srs-buttons-group">
                         <div className="srs-fail-zone">
-                          <button className="srs-btn srs-btn-1" onClick={() => onReviewFlashcard(currentCard.id, 0)}>
+                          <button className="srs-btn srs-btn-1" onClick={() => handleReviewFlashcard(currentCard.id, 0)}>
                             Blackout <span>(Reset)</span>
                           </button>
-                          <button className="srs-btn srs-btn-2" onClick={() => onReviewFlashcard(currentCard.id, 1)}>
+                          <button className="srs-btn srs-btn-2" onClick={() => handleReviewFlashcard(currentCard.id, 1)}>
                             Wrong <span>(Remembered)</span>
                           </button>
-                          <button className="srs-btn srs-btn-3" onClick={() => onReviewFlashcard(currentCard.id, 2)}>
+                          <button className="srs-btn srs-btn-3" onClick={() => handleReviewFlashcard(currentCard.id, 2)}>
                             Wrong <span>(Effortless)</span>
                           </button>
                         </div>
                         <div className="srs-pass-zone">
-                          <button className="srs-btn srs-btn-4" onClick={() => onReviewFlashcard(currentCard.id, 3)}>
+                          <button className="srs-btn srs-btn-4" onClick={() => handleReviewFlashcard(currentCard.id, 3)}>
                             Hard <span>(Struggled)</span>
                           </button>
-                          <button className="srs-btn srs-btn-5" onClick={() => onReviewFlashcard(currentCard.id, 4)}>
+                          <button className="srs-btn srs-btn-5" onClick={() => handleReviewFlashcard(currentCard.id, 4)}>
                             Good <span>(Standard)</span>
                           </button>
-                          <button className="srs-btn srs-btn-6" onClick={() => onReviewFlashcard(currentCard.id, 5)}>
+                          <button className="srs-btn srs-btn-6" onClick={() => handleReviewFlashcard(currentCard.id, 5)}>
                             Easy <span>(Perfect)</span>
                           </button>
                         </div>

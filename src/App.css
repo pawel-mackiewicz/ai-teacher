@@ -65,3 +65,55 @@
     width: 100%;
   }
 }
+
+/* === Toast Notification === */
+.srs-toast-notification {
+  position: absolute;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-medium);
+  box-shadow: var(--shadow-xl);
+  border-radius: var(--radius-full);
+  padding: 0.6rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 50;
+  animation: slideDownFadeOut 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: none;
+  /* Ignore clicks so user doesn't hit it accidentally */
+}
+
+.srs-toast-notification .toast-icon {
+  font-size: 1.1rem;
+}
+
+.srs-toast-notification .toast-text {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+@keyframes slideDownFadeOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -15px);
+  }
+
+  15% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  75% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+}
