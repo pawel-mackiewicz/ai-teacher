@@ -64,7 +64,7 @@ export function ChatMessageItem({
                         <div className="message-actions">
                             <button
                                 type="button"
-                                className="message-retry-btn"
+                                className="btn-primary"
                                 onClick={handleEditSave}
                                 disabled={!editContent.trim() || isLoading}
                             >
@@ -72,7 +72,7 @@ export function ChatMessageItem({
                             </button>
                             <button
                                 type="button"
-                                className="message-retry-btn"
+                                className="btn-secondary"
                                 onClick={handleEditCancel}
                                 disabled={isLoading}
                             >
@@ -86,7 +86,7 @@ export function ChatMessageItem({
                         <div className="message-actions">
                             <button
                                 type="button"
-                                className="message-retry-btn"
+                                className="btn-secondary"
                                 onClick={() => onRetryMessage(message.id)}
                                 disabled={isLoading}
                                 aria-label="Retry from this message"
@@ -96,7 +96,7 @@ export function ChatMessageItem({
                             </button>
                             <button
                                 type="button"
-                                className="message-retry-btn"
+                                className="btn-secondary"
                                 onClick={handleEditStart}
                                 disabled={isLoading}
                                 aria-label="Edit this message"

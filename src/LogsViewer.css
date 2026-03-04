@@ -61,33 +61,7 @@
     gap: 0.75rem;
 }
 
-.btn-clear-logs {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.375rem 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--accent-danger);
-    border-radius: var(--radius-md);
-    transition: background-color var(--transition-fast), color var(--transition-fast);
-}
 
-.btn-clear-logs:hover {
-    background-color: rgba(239, 68, 68, 0.1);
-}
-
-.btn-close-logs {
-    padding: 0.375rem;
-    color: var(--text-secondary);
-    border-radius: var(--radius-md);
-    transition: background-color var(--transition-fast), color var(--transition-fast);
-}
-
-.btn-close-logs:hover {
-    color: var(--text-primary);
-    background-color: var(--bg-hover);
-}
 
 .logs-viewer-content {
     flex: 1;

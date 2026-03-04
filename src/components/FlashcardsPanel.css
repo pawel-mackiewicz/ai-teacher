@@ -147,9 +147,9 @@
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
-  background-color: var(--bg-surface);
+  background: var(--bg-surface);
   color: var(--text-tertiary);
-  border-color: var(--border-medium);
+  border: 1px solid var(--border-medium);
   filter: grayscale(100%);
 }
 

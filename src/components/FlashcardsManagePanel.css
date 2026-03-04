@@ -105,36 +105,6 @@
     border-top: 1px solid var(--border-color);
 }
 
-.btn-danger {
-    background-color: transparent;
-    border: 1px solid #ef4444;
-    color: #ef4444;
-}
-
-.btn-danger:hover:not(:disabled) {
-    background-color: #ef4444;
-    color: white;
-}
-
-.btn-icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.2rem;
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    transition: background-color 0.2s, color 0.2s;
-}
-
-.btn-icon:hover {
-    background-color: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-}
 
 /* Generator Form Styles */
 .generator-section {

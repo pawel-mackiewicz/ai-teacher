@@ -95,7 +95,7 @@ export function AppSidebar({
         <h2>Conversations</h2>
         <button
           type="button"
-          className="new-chat-btn"
+          className="btn-primary"
           onClick={onCreateConversation}
           disabled={isLoading}
         >
@@ -123,7 +123,7 @@ export function AppSidebar({
             </div>
             <button
               type="button"
-              className="conversation-delete-btn"
+              className="btn-icon danger"
               onClick={(e) => onDeleteConversation(e, conversation.id)}
               disabled={isLoading}
               aria-label="Delete conversation"

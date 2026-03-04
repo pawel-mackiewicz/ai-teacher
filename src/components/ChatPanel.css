@@ -49,10 +49,11 @@
 }
 
 .input-form:has(textarea:not(:placeholder-shown)) .btn-send {
-  color: white;
-  background-color: var(--accent-primary);
+  color: var(--text-primary);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-strong);
 }
 
 .input-form:has(textarea:not(:placeholder-shown)) .btn-send:hover {
-  background-color: var(--accent-primary-hover);
+  background-color: var(--bg-hover);
 }

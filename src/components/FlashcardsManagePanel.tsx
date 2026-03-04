@@ -133,7 +133,7 @@ export function FlashcardsManagePanel({ flashcards }: FlashcardsManagePanelProps
                         <div className="manage-actions">
                             <button
                                 type="button"
-                                className="btn-secondary btn-danger"
+                                className="btn-danger"
                                 onClick={discardFlashcardDrafts}
                             >
                                 Discard All

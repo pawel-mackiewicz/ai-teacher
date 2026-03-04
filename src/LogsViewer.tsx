@@ -77,14 +77,14 @@ export const LogsViewer: React.FC<LogsViewerProps> = ({ onClose }) => {
                     <div className="logs-viewer-header-actions">
                         <button
                             onClick={handleClear}
-                            className="btn-clear-logs"
+                            className="btn-danger"
                         >
                             <Trash2 className="w-4 h-4" />
                             Clear
                         </button>
                         <button
                             onClick={onClose}
-                            className="btn-close-logs"
+                            className="btn-icon"
                         >
                             <X className="w-5 h-5" />
                         </button>

@@ -64,27 +64,7 @@
   box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
-.btn-primary {
-  background-color: var(--accent-primary);
-  color: white;
-  padding: 1rem;
-  border-radius: var(--radius-md);
-  font-weight: 600;
-  font-size: 1rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
 
-.btn-primary:hover {
-  background-color: var(--accent-primary-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-glow);
-}
-
-.btn-primary:active {
-  transform: translateY(1px);
-}
 
 .setup-footer {
   margin-top: 2rem;

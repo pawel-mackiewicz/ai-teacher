@@ -30,25 +30,7 @@
   font-weight: 600;
 }
 
-.new-chat-btn {
-  background: linear-gradient(130deg, var(--accent-primary), var(--accent-primary-hover));
-  color: #fff;
-  border-radius: var(--radius-sm);
-  padding: 0.4rem 0.75rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-}
 
-.new-chat-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-glow);
-}
-
-.new-chat-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
 
 .conversation-list {
   display: flex;
@@ -116,38 +98,15 @@
   letter-spacing: 0.04em;
 }
 
-.conversation-delete-btn {
-  background: transparent;
-  color: var(--text-tertiary);
-  border: none;
-  padding: 0.4rem;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  opacity: 0;
-  transition: all var(--transition-fast);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: -0.2rem;
-  margin-right: -0.4rem;
-  flex-shrink: 0;
-}
-
 /* Ensure mobile hover/active behavior works okay too */
 @media (hover: hover) {
-  .conversation-item:hover .conversation-delete-btn {
+  .conversation-item:hover .btn-icon.danger {
     opacity: 0.6;
   }
 }
 
-.conversation-item.active .conversation-delete-btn {
+.conversation-item.active .btn-icon.danger {
   opacity: 0.6;
-}
-
-.conversation-delete-btn:hover {
-  opacity: 1 !important;
-  color: var(--accent-danger, #ef4444);
-  background-color: rgba(239, 68, 68, 0.1);
 }
 
 .sidebar-separator {

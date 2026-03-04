@@ -296,7 +296,7 @@ export function WordsPanel({ words, viewMode }: WordsPanelProps) {
                                     <div className="topic-actions">
                                         <button
                                             type="button"
-                                            className="btn-secondary btn-danger"
+                                            className="btn-danger"
                                             onClick={words.clearTopicDrafts}
                                         >
                                             Clear All
