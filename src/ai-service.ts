@@ -21,6 +21,7 @@ export interface ChatRequestContext {
 export interface SendMessageToAIOptions {
   firstTokenTimeoutMs?: number;
   betweenChunksTimeoutMs?: number;
+  systemInstruction?: string;
   requestContext?: ChatRequestContext;
 }
 
@@ -589,7 +590,7 @@ export const sendMessageToAI = async (
 
   const payload = {
     systemInstruction: {
-      parts: [{ text: SYSTEM_PROMPT }],
+      parts: [{ text: options.systemInstruction ?? SYSTEM_PROMPT }],
     },
     contents: createRequestContents(history, message),
     generationConfig: {

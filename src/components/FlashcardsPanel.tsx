@@ -7,6 +7,9 @@ import type {
   PendingFlashcardEvaluation,
 } from '../hooks/useFlashcards';
 import { getNextReviewIntervalFormatted } from '../srs';
+import { useEphemeralChat } from '../hooks/useEphemeralChat';
+import { EphemeralChat } from './EphemeralChat';
+import masterRestorerPrompt from '../../MASTER_RESTORER.md?raw';
 import './FlashcardsPanel.css';
 interface FlashcardsPanelProps {
   currentCard: Flashcard | null;
@@ -50,6 +53,9 @@ export function FlashcardsPanel({
   const [correctionInput, setCorrectionInput] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<number | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  const ephemeralChat = useEphemeralChat();
 
   const canSubmitAnswer = !isEvaluatingAnswer && typedAnswer.trim().length > 0;
   const canSubmitCorrection = correctionInput.trim().length > 0;
@@ -131,6 +137,8 @@ export function FlashcardsPanel({
       const intervalText = getNextReviewIntervalFormatted(pendingEvaluation.score, currentCard);
       showToast(`Reviewed! Next review in ${intervalText}`);
     }
+    ephemeralChat.clearChat();
+    setIsChatOpen(false);
     onAcceptEvaluationAndContinue();
   };
 
@@ -139,7 +147,31 @@ export function FlashcardsPanel({
       const intervalText = getNextReviewIntervalFormatted(rating, currentCard);
       showToast(`Reviewed! Next review in ${intervalText}`);
     }
+    ephemeralChat.clearChat();
+    setIsChatOpen(false);
     onReviewFlashcard(cardId, rating);
+  };
+
+  const handleOpenRestorerChat = () => {
+    if (!currentCard || !pendingEvaluation) return;
+
+    setIsChatOpen(true);
+
+    const initialText = `Here is my cracked brick:
+    
+**Front:**
+${currentCard.front}
+
+**Back:**
+${currentCard.back}
+
+**My Answer:**
+${pendingEvaluation.userAnswer}
+
+**Why it's wrong (Argumentation):**
+${pendingEvaluation.argumentation}`;
+
+    void ephemeralChat.sendMessage(initialText, masterRestorerPrompt);
   };
 
   const nextReviewIntervalText = currentCard && pendingEvaluation
@@ -254,6 +286,15 @@ export function FlashcardsPanel({
                 ) : null}
 
                 <div className="flashcard-feedback-actions">
+                  <button
+                    className="btn-secondary"
+                    onClick={handleOpenRestorerChat}
+                    type="button"
+                    disabled={isChatOpen}
+                  >
+                    Chat with Master Restorer
+                  </button>
+                  <div style={{ flex: 1 }}></div>
                   {requiresCorrection && !isCorrectionSubmitted ? (
                     <p className="flashcard-correction-warning">
                       Submit a corrected answer to unlock the next card.
@@ -267,6 +308,19 @@ export function FlashcardsPanel({
                     Next Card
                   </button>
                 </div>
+
+                {isChatOpen && (
+                  <EphemeralChat
+                    messages={ephemeralChat.messages}
+                    inputValue={ephemeralChat.inputValue}
+                    isLoading={ephemeralChat.isLoading}
+                    onInputChange={ephemeralChat.setInputValue}
+                    onSubmit={() => { ephemeralChat.sendMessage(ephemeralChat.inputValue, masterRestorerPrompt); ephemeralChat.setInputValue(''); }}
+                    onClose={() => {
+                      setIsChatOpen(false);
+                    }}
+                  />
+                )}
               </div>
             ) : (
               <div className="flashcard-answer-step">

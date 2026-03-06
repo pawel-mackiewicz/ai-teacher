@@ -1,0 +1,66 @@
+.ephemeral-chat-container {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background-color: var(--card-bg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin-top: 1.5rem;
+    max-height: 600px;
+    min-height: 400px;
+}
+
+.ephemeral-chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background-color: var(--surface-bg);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.ephemeral-chat-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.ephemeral-chat-close {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.ephemeral-chat-close:hover {
+    color: var(--text-primary);
+    background-color: var(--surface-hover);
+}
+
+.ephemeral-chat-area {
+    flex: 1;
+    background-color: var(--bg-primary);
+    padding: 1rem;
+    /* Override ChatPanel.css specific height behavior if needed */
+    height: auto;
+    max-width: 100%;
+}
+
+.ephemeral-input-area {
+    background-color: var(--surface-bg);
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border-color);
+}
