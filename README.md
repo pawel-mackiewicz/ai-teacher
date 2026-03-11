@@ -1,51 +1,43 @@
 ## What is this?
 
-I vibecoded it for myself for learning new things. Like CS and new words in Foreign Languages. 
-I had it scattered across different apps and tools, so I decided to make a single app from it.
+I vibecoded this app for myself to help me learn new things—from Computer Science concepts to foreign language vocabulary. My learning process used to be scattered across multiple apps and tools, so I decided to consolidate everything into a single workspace. 
 
-I use it daily; it may be useful for you as well.
+I use it daily, and I hope you find it just as useful. Enjoy!
 
-AI follows Bloom's Taxonomy (levels 2 to 5) for structuring the learning process.
+## Core Features
 
-So it goes:
+The app is powered by the **Gemini API** to do the heavy lifting and uses proven learning frameworks to help you retain information:
 
-2. understanding
-3. applying
-4. analyzing
-5. evaluating
+*   **Bloom's Taxonomy Learning:** The AI structures your learning process through four key cognitive levels:
+    1. *Understanding*
+    2. *Applying*
+    3. *Analyzing*
+    4. *Evaluating*
+*   **AI-Generated Flashcards:** After you learn a new topic, the AI can instantly generate flashcards based on what you just studied.
+*   **Vocabulary Builder:** Perfect for learning foreign languages. Just provide a word, and the AI returns definitions, example sentences, and translations.
+*   **Spaced Repetition System (SRS):** Both flashcards and vocabulary reviews are powered by the SuperMemo 2 (SM-2) algorithm, ensuring you review concepts right before you forget them.
 
-And then you can create flashcards with the help of AI from the given topic that you just learned.
+## Getting Started
 
-There is also section for learning words in different languages - just provide a word, and AI will give you definition, examples and translations.  
+1. Clone the repo and install the dependencies:
+   ```bash
+   npm install
+   ```
+2. Start the development server:
+   ```bash
+   npm run dev
+   ```
+3. Open the app in your browser.
+4. Provide your personal Gemini API key in the setup screen.
+5. Start learning!
 
-Flashcards and word learning uses Spaced Repetition System (SRS) with SuperMemo 2 algorithm.
+## ⚠️ Security Warning: API Key Storage
 
-It uses Gemini API for the heavy lifting. So you need to provide your own API key.
+Because this is a client-side application, it stores your Gemini API key in your browser's `localStorage` for convenience. 
 
-Enjoy.
-
-## How to start?
-
-```bash
-npm install
-npm run dev
-```
-
-## How to use?
-
-1. Open the app in your browser.
-2. Provide your Gemini API key.
-3. Start learning!
-
-
-## Security warning (Gemini API key in browser storage)
-
-This app stores the Gemini API key in browser storage (`localStorage`) when you submit it in the setup screen.
-
-This is convenient for local use, but it is **not secure storage**:
-- Any malicious script running in the page context can read it.
-- A malicious browser extension can read it.
-- Anyone with access to your browser profile/session can potentially extract it.
-
-Use this browser-only mode for personal/local usage only. For production or shared environments, move API key handling to a backend service and never expose the key to client-side JavaScript.
-
+**This is not a secure storage method.** 
+* Any malicious script running in the page context can read it.
+* A malicious browser extension can read it.
+* Anyone with access to your browser profile or session could potentially extract it.
+  
+**Best Practice:** This setup is perfectly fine for personal, local use. However, if you plan to deploy this app for production or shared environments, you must move the API key handling to a backend service. Never expose your API keys to client-side JavaScript in production.
