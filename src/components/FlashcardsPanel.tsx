@@ -316,6 +316,7 @@ ${pendingEvaluation.argumentation}`;
                     isLoading={ephemeralChat.isLoading}
                     onInputChange={ephemeralChat.setInputValue}
                     onSubmit={() => { ephemeralChat.sendMessage(ephemeralChat.inputValue, masterRestorerPrompt); ephemeralChat.setInputValue(''); }}
+                    onRetryMessage={(id) => { ephemeralChat.retryMessage(id, masterRestorerPrompt); }}
                     onClose={() => {
                       setIsChatOpen(false);
                     }}

@@ -46,6 +46,8 @@ export interface UseFlashcardsResult {
   setIsFlashcardsView: Dispatch<SetStateAction<boolean>>;
   isFlashcardsManageView: boolean;
   setIsFlashcardsManageView: Dispatch<SetStateAction<boolean>>;
+  isFlashcardsAllView: boolean;
+  setIsFlashcardsAllView: Dispatch<SetStateAction<boolean>>;
   isGeneratingFlashcards: boolean;
   isGeneratingTopicFlashcards: boolean;
   topicGenerationError: string | null;
@@ -73,12 +75,15 @@ export interface UseFlashcardsResult {
   submitCorrection: (answer: string) => void;
   acceptEvaluationAndContinue: () => void;
   reviewFlashcard: (cardId: string, rating: FlashcardRating) => void;
+  deleteFlashcard: (id: string) => void;
+  updateFlashcard: (id: string, updates: Partial<Pick<Flashcard, 'front' | 'back' | 'topic'>>) => void;
 }
 
 export const useFlashcards = (): UseFlashcardsResult => {
   const [flashcards, setFlashcards] = useState<Flashcard[]>(() => loadStoredFlashcards());
   const [isFlashcardsView, setIsFlashcardsView] = useState(false);
   const [isFlashcardsManageView, setIsFlashcardsManageView] = useState(false);
+  const [isFlashcardsAllView, setIsFlashcardsAllView] = useState(false);
   const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
   const [isGeneratingTopicFlashcards, setIsGeneratingTopicFlashcards] = useState(false);
   const [topicGenerationError, setTopicGenerationError] = useState<string | null>(null);
@@ -155,6 +160,7 @@ export const useFlashcards = (): UseFlashcardsResult => {
         setFlashcardDrafts(drafts);
         setIsFlashcardsManageView(true);
         setIsFlashcardsView(false);
+        setIsFlashcardsAllView(false);
         addLog('action', `Generated ${drafts.length} flashcard drafts`);
       } finally {
         setIsGeneratingFlashcards(false);
@@ -204,6 +210,7 @@ export const useFlashcards = (): UseFlashcardsResult => {
         setFlashcardDrafts((prev) => [...prev, ...validDrafts]);
         setIsFlashcardsManageView(true);
         setIsFlashcardsView(false);
+        setIsFlashcardsAllView(false);
         addLog('action', `Generated ${validDrafts.length} valid topic flashcard drafts for "${normalizedTopic}"`);
         if (validDrafts.length < annotatedDrafts.length) {
           setTopicGenerationError(`Generated ${validDrafts.length} valid flashcards. ${annotatedDrafts.length - validDrafts.length} duplicate/incomplete drafts were discarded.`);
@@ -281,11 +288,13 @@ export const useFlashcards = (): UseFlashcardsResult => {
       setFlashcardDrafts(remainingDrafts);
       setIsFlashcardsManageView(true);
       setIsFlashcardsView(false);
+      setIsFlashcardsAllView(false);
       setTopicGenerationError(`Saved ${newCards.length} flashcards. ${remainingDrafts.length} draft(s) still need fixes.`);
     } else {
       setFlashcardDrafts([]);
       setIsFlashcardsManageView(false);
       setIsFlashcardsView(true);
+      setIsFlashcardsAllView(false);
       setTopicGenerationError(null);
     }
 
@@ -388,12 +397,29 @@ export const useFlashcards = (): UseFlashcardsResult => {
     applyReviewRating(pendingEvaluation.cardId, pendingEvaluation.score, 'llm');
   }, [applyReviewRating, isCorrectionSubmitted, pendingEvaluation]);
 
+  const deleteFlashcard = useCallback((id: string) => {
+    setFlashcards((prev) => prev.filter((card) => card.id !== id));
+    addLog('action', `Deleted flashcard ${id}`);
+  }, []);
+
+  const updateFlashcard = useCallback(
+    (id: string, updates: Partial<Pick<Flashcard, 'front' | 'back' | 'topic'>>) => {
+      setFlashcards((prev) =>
+        prev.map((card) => (card.id === id ? { ...card, ...updates } : card))
+      );
+      addLog('action', `Updated flashcard ${id}`);
+    },
+    []
+  );
+
   return {
     flashcards,
     isFlashcardsView,
     setIsFlashcardsView,
     isFlashcardsManageView,
     setIsFlashcardsManageView,
+    isFlashcardsAllView,
+    setIsFlashcardsAllView,
     isGeneratingFlashcards,
     isGeneratingTopicFlashcards,
     topicGenerationError,
@@ -417,5 +443,7 @@ export const useFlashcards = (): UseFlashcardsResult => {
     submitCorrection,
     acceptEvaluationAndContinue,
     reviewFlashcard,
+    deleteFlashcard,
+    updateFlashcard,
   };
 };

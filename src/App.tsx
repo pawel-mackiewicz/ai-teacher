@@ -12,6 +12,7 @@ import { useFlashcards } from './hooks/useFlashcards';
 import { useWords } from './hooks/useWords';
 import { WordsPanel } from './components/WordsPanel';
 import { FlashcardsManagePanel } from './components/FlashcardsManagePanel';
+import { FlashcardsAllPanel } from './components/FlashcardsAllPanel';
 import './App.css';
 import { getErrorMessage } from './utils/error';
 
@@ -39,6 +40,7 @@ function App() {
     chat.setInputValue('');
     flashcards.setIsFlashcardsView(false);
     flashcards.setIsFlashcardsManageView(false);
+    flashcards.setIsFlashcardsAllView(false);
     setIsWordsReviewView(false);
     setIsWordsManageView(false);
   };
@@ -60,6 +62,7 @@ function App() {
     conversations.selectConversation(conversationId);
     flashcards.setIsFlashcardsView(false);
     flashcards.setIsFlashcardsManageView(false);
+    flashcards.setIsFlashcardsAllView(false);
     setIsWordsReviewView(false);
     setIsWordsManageView(false);
   };
@@ -115,6 +118,7 @@ function App() {
       <AppSidebar
         isFlashcardsView={flashcards.isFlashcardsView}
         isFlashcardsManageView={flashcards.isFlashcardsManageView}
+        isFlashcardsAllView={flashcards.isFlashcardsAllView}
         isWordsReviewView={isWordsReviewView}
         isWordsManageView={isWordsManageView}
         dueCardsCount={flashcards.dueCardsCount}
@@ -125,12 +129,21 @@ function App() {
         onOpenFlashcards={() => {
           flashcards.setIsFlashcardsView(true);
           flashcards.setIsFlashcardsManageView(false);
+          flashcards.setIsFlashcardsAllView(false);
           setIsWordsReviewView(false);
           setIsWordsManageView(false);
         }}
         onOpenFlashcardsManage={() => {
           flashcards.setIsFlashcardsManageView(true);
           flashcards.setIsFlashcardsView(false);
+          flashcards.setIsFlashcardsAllView(false);
+          setIsWordsReviewView(false);
+          setIsWordsManageView(false);
+        }}
+        onOpenFlashcardsAll={() => {
+          flashcards.setIsFlashcardsAllView(true);
+          flashcards.setIsFlashcardsView(false);
+          flashcards.setIsFlashcardsManageView(false);
           setIsWordsReviewView(false);
           setIsWordsManageView(false);
         }}
@@ -139,12 +152,14 @@ function App() {
           setIsWordsManageView(false);
           flashcards.setIsFlashcardsView(false);
           flashcards.setIsFlashcardsManageView(false);
+          flashcards.setIsFlashcardsAllView(false);
         }}
         onOpenWordsManage={() => {
           setIsWordsManageView(true);
           setIsWordsReviewView(false);
           flashcards.setIsFlashcardsView(false);
           flashcards.setIsFlashcardsManageView(false);
+          flashcards.setIsFlashcardsAllView(false);
         }}
         onCreateConversation={handleCreateConversation}
         onSelectConversation={handleSelectConversation}
@@ -178,6 +193,8 @@ function App() {
           <WordsPanel words={words} viewMode={isWordsReviewView ? 'review' : 'manage'} />
         ) : flashcards.isFlashcardsManageView ? (
           <FlashcardsManagePanel flashcards={flashcards} />
+        ) : flashcards.isFlashcardsAllView ? (
+          <FlashcardsAllPanel flashcards={flashcards} />
         ) : flashcards.isFlashcardsView ? (
           <FlashcardsPanel
             key={flashcards.currentCard?.id ?? 'flashcards-empty'}

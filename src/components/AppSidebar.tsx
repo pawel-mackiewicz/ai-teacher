@@ -10,6 +10,7 @@ import './AppSidebar.css';
 interface AppSidebarProps {
   isFlashcardsView: boolean;
   isFlashcardsManageView: boolean;
+  isFlashcardsAllView: boolean;
   isWordsReviewView: boolean;
   isWordsManageView: boolean;
   dueCardsCount: number;
@@ -19,6 +20,7 @@ interface AppSidebarProps {
   isLoading: boolean;
   onOpenFlashcards: () => void;
   onOpenFlashcardsManage: () => void;
+  onOpenFlashcardsAll: () => void;
   onOpenWordsReview: () => void;
   onOpenWordsManage: () => void;
   onCreateConversation: () => void;
@@ -29,6 +31,7 @@ interface AppSidebarProps {
 export function AppSidebar({
   isFlashcardsView,
   isFlashcardsManageView,
+  isFlashcardsAllView,
   isWordsReviewView,
   isWordsManageView,
   dueCardsCount,
@@ -38,6 +41,7 @@ export function AppSidebar({
   isLoading,
   onOpenFlashcards,
   onOpenFlashcardsManage,
+  onOpenFlashcardsAll,
   onOpenWordsReview,
   onOpenWordsManage,
   onCreateConversation,
@@ -76,6 +80,13 @@ export function AppSidebar({
       </button>
 
       <button
+        className={`sidebar-menu-btn ${isFlashcardsAllView ? 'active' : ''}`}
+        onClick={onOpenFlashcardsAll}
+      >
+        All Flashcards
+      </button>
+
+      <button
         className={`sidebar-menu-btn ${isWordsReviewView ? 'active' : ''}`}
         onClick={onOpenWordsReview}
       >
@@ -106,7 +117,7 @@ export function AppSidebar({
         {sortedConversations.map((conversation) => (
           <div
             key={conversation.id}
-            className={`conversation-item ${conversation.id === activeConversationId && !isFlashcardsView && !isWordsReviewView && !isWordsManageView ? 'active' : ''}`}
+            className={`conversation-item ${conversation.id === activeConversationId && !isFlashcardsView && !isFlashcardsAllView && !isWordsReviewView && !isWordsManageView ? 'active' : ''}`}
             onClick={() => {
               if (isLoading) return;
               onSelectConversation(conversation.id);

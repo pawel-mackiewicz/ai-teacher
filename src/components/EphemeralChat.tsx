@@ -10,6 +10,7 @@ interface EphemeralChatProps {
     isLoading: boolean;
     onInputChange: (value: string) => void;
     onSubmit: (e?: FormEvent) => void;
+    onRetryMessage: (id: string) => void;
     onClose: () => void;
 }
 
@@ -19,6 +20,7 @@ export function EphemeralChat({
     isLoading,
     onInputChange,
     onSubmit,
+    onRetryMessage,
     onClose,
 }: EphemeralChatProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -69,14 +71,14 @@ export function EphemeralChat({
                 {messages.map((message, index) => {
                     const isGenerating = isLoading && message.role === 'ai' && index === messages.length - 1;
 
-                    // Ephemeral chat doesn't support retry/edit, so pass empty handlers
+                    // Ephemeral chat doesn't support edit, but we support retry
                     return (
                         <ChatMessageItem
                             key={message.id}
                             message={message}
                             isGenerating={isGenerating}
                             isLoading={isLoading}
-                            onRetryMessage={() => { }}
+                            onRetryMessage={onRetryMessage}
                             onEditMessage={() => { }}
                         />
                     );

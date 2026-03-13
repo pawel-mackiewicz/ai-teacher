@@ -1,0 +1,194 @@
+.flashcards-all-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--bg-primary);
+}
+
+.flashcards-all-header {
+    padding: 24px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+}
+
+.flashcards-all-header h2 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+}
+
+.flashcards-all-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-secondary);
+}
+
+.topic-group {
+    margin-bottom: 40px;
+}
+
+.topic-header {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border-color);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.topic-count {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: normal;
+}
+
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.all-card-item {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.card-side {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.card-side strong {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.prose-small {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+
+.prose-small p {
+    margin: 0 0 8px 0;
+}
+
+.prose-small p:last-child {
+    margin-bottom: 0;
+}
+
+.card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.srs-badge {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    background-color: var(--bg-primary);
+    padding: 4px 8px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.card-actions .btn-icon {
+    background: transparent;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 4px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.card-actions .btn-icon:hover {
+    opacity: 1;
+}
+
+.card-actions .btn-icon.danger:hover {
+    color: #ef4444;
+}
+
+/* Edit Form Styles */
+.card-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+}
+
+.card-edit-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.card-edit-form label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.edit-input,
+.edit-textarea {
+    width: 100%;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 4px;
+    padding: 8px;
+    font-family: inherit;
+}
+
+.edit-input:focus,
+.edit-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.edit-textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.edit-actions {
+    margin-top: auto;
+    padding-top: 12px;
+    justify-content: flex-end;
+}

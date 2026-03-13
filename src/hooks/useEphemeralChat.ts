@@ -10,6 +10,7 @@ export interface UseEphemeralChatResult {
     setInputValue: (value: string) => void;
     isLoading: boolean;
     sendMessage: (userText: string, systemPrompt?: string) => Promise<void>;
+    retryMessage: (messageId: string, systemPrompt?: string) => Promise<void>;
     clearChat: () => void;
 }
 
@@ -81,6 +82,71 @@ export const useEphemeralChat = (): UseEphemeralChatResult => {
         }
     }, [isLoading, messages]);
 
+    const retryMessage = useCallback(async (messageId: string, systemPrompt?: string) => {
+        if (isLoading) return;
+
+        const targetIndex = messages.findIndex(msg => msg.id === messageId);
+        if (targetIndex === -1) return;
+
+        const targetMessage = messages[targetIndex];
+        if (targetMessage.role !== 'user') return; // The UI sends the *user* message ID for retries
+
+        setIsLoading(true);
+        addLog('action', 'Retried message in ephemeral chat', { messageId });
+
+        // History *before* the user's prompt for this turn
+        const historyBeforeSend = messages
+            .slice(0, targetIndex)
+            .map(m => ({ role: m.role, content: m.content }));
+
+        const userText = targetMessage.content;
+        const aiMessageId = createId();
+
+        setMessages((prev) => {
+            const newMessages = prev.slice(0, targetIndex + 1);
+            newMessages.push({ id: aiMessageId, role: 'ai', content: '' });
+            return newMessages;
+        });
+
+        try {
+            await sendMessageToAI(
+                userText,
+                historyBeforeSend,
+                (chunk) => {
+                    setMessages((prev) =>
+                        prev.map((msg) =>
+                            msg.id === aiMessageId ? { ...msg, content: chunk } : msg
+                        )
+                    );
+                },
+                {
+                    systemInstruction: systemPrompt,
+                    requestContext: {
+                        aiMessageId,
+                        trigger: 'retry',
+                    },
+                }
+            );
+        } catch (error) {
+            const errorMessage = getErrorMessage(error);
+
+            setMessages((prev) =>
+                prev.map((msg) => {
+                    if (msg.id !== aiMessageId) return msg;
+
+                    const normalizedContent = msg.content.trim();
+                    const failureContent = normalizedContent
+                        ? `${normalizedContent}\n\n---\n\n⚠️ ${errorMessage}`
+                        : `⚠️ ${errorMessage}`;
+
+                    return { ...msg, content: failureContent };
+                })
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    }, [isLoading, messages]);
+
     const clearChat = useCallback(() => {
         setMessages([]);
         setInputValue('');
@@ -94,6 +160,7 @@ export const useEphemeralChat = (): UseEphemeralChatResult => {
         setInputValue,
         isLoading,
         sendMessage,
+        retryMessage,
         clearChat,
     };
 };
